@@ -1,0 +1,6 @@
+{
+  "go.useLanguageServer": true,
+  "editor.formatOnSave": true,
+  "go.formatTool": "gofmt",
+  "go.lintTool": "golangci-lint"
+}

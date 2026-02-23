@@ -1,10 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
 
-func main() {
+	"github.com/andreishemetov/pawpal/internal/data"
+)
 
-	pet := Pet{
+func lesson1() {
+
+	fmt.Println("Lesson 1 starting...")
+
+	pet := data.Pet{
 		ID:   1,
 		Name: "Charlie",
 		Type: "Dog",
@@ -15,7 +21,7 @@ func main() {
 	fmt.Println(pet.SpeakInLanguage("es"))
 	fmt.Println(SpeakInLanguage2(pet, "en"))
 
-	pets := []Pet{
+	pets := []data.Pet{
 		{ID: 1, Name: "Charlie", Type: "Dog"},
 		{ID: 2, Name: "Milo", Type: "Cat"},
 		{ID: 3, Name: "Bella", Type: "Dog"},
@@ -28,41 +34,26 @@ func main() {
 		{ID: 10, Name: "Luna", Type: "Cat"},
 	}
 
+	printPets(pets)
+	fmt.Println("Total pets:", countPets(pets))
+}
+
+func SpeakInLanguage2(p data.Pet, language string) string {
+	if language == "en" {
+		return "My name is " + p.Name
+	}
+	if language == "es" {
+		return "Me llamo " + p.Name
+	}
+	return p.Name
+}
+
+func printPets(pets []data.Pet) {
 	for _, p := range pets {
 		fmt.Println(p.Name)
 	}
 }
 
-type Pet struct {
-	ID   int
-	Name string
-	Type string
-}
-
-func (p Pet) String() string {
-	return fmt.Sprintf("%d - %s (%s)", p.ID, p.Name, p.Type)
-}
-
-func (p Pet) Speak() string {
-	return "My name is " + p.Name
-}
-
-func (p Pet) SpeakInLanguage(language string) string {
-	if language == "en" {
-		return "My name is " + p.Name
-	}
-	if language == "es" {
-		return "Me llamo " + p.Name
-	}
-	return p.Name
-}
-
-func SpeakInLanguage2(p Pet, language string) string {
-	if language == "en" {
-		return "My name is " + p.Name
-	}
-	if language == "es" {
-		return "Me llamo " + p.Name
-	}
-	return p.Name
+func countPets(pets []data.Pet) int {
+	return len(pets)
 }

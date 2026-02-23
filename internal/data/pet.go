@@ -3,9 +3,10 @@ package data
 import "fmt"
 
 type Pet struct {
-	ID   int
-	Name string
-	Type string
+	ID   int	`json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Age  int    `json:"age"`
 }
 
 func (p Pet) String() string {

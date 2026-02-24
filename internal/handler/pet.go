@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/andreishemetov/pawpal/internal/data"
+	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -19,11 +20,19 @@ type CountResponse struct {
 	Count int `json:"count"`
 }
 
-func GetPets(w http.ResponseWriter, r *http.Request) {
+type PetHandler struct {
+	service *service.PetService
+}
+
+func NewPetHandler(service *service.PetService) *PetHandler {
+	return &PetHandler{service: service}
+}
+
+func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	jsonData, err := json.Marshal(pets)
+	jsonData, err := json.Marshal(h.service.GetAll())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -32,7 +41,7 @@ func GetPets(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func PostPet(w http.ResponseWriter, r *http.Request) {
+func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -52,14 +61,14 @@ func PostPet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pets = append(pets, pet)
+	h.service.Add(pet)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(pet)
 }
 
-func GetCountPets(w http.ResponseWriter, r *http.Request) {
-	count := len(pets)
+func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
+	count := len(h.service.GetAll())
 	w.Header().Set("Content-Type", "application/json")
 	response := CountResponse{
 		Count: count,
@@ -68,7 +77,7 @@ func GetCountPets(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func GetPetByID(w http.ResponseWriter, r *http.Request) {
+func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -76,15 +85,13 @@ func GetPetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, pet := range pets {
-		if pet.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(pet)
-			return
-		}
+	pet, found := h.service.GetByID(id)
+	if found {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(pet)
+		return
 	}
 
-	// If not found
 	w.WriteHeader(http.StatusNotFound)
 	json.NewEncoder(w).Encode(ErrorResponse{
 		Error: "pet not found",

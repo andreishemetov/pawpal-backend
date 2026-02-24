@@ -19,15 +19,15 @@ func lesson4() {
 
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/pets/count", func(w http.ResponseWriter, r *http.Request) {
-		countPetsHandler(w, r, &pets)
+		getCountPetsHandler(w, r, &pets)
 	})
 	http.HandleFunc("/pets", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			getPets(w, r, &pets)
+			getPetsHandler(w, r, &pets)
 			return
 		}
 		if r.Method == http.MethodPost {
-			createPet(w, r, &pets)
+			postPetHandler(w, r, &pets)
 			return
 		}
 
@@ -42,7 +42,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func getPets(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
+func getPetsHandler(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -55,7 +55,7 @@ func getPets(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
 	w.Write(jsonData)
 }
 
-func createPet(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
+func postPetHandler(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -81,7 +81,7 @@ func createPet(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
 	json.NewEncoder(w).Encode(pet)
 }
 
-func countPetsHandler(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
+func getCountPetsHandler(w http.ResponseWriter, r *http.Request, pets *[]data.Pet) {
 	count := len(*pets)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

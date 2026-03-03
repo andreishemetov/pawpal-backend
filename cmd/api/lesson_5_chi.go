@@ -31,6 +31,7 @@ func lesson5() {
 	router.Post("/pets", petHandler.PostPet)
 	router.Get("/pets/{id}", petHandler.GetPetByID)
 	router.Get("/pets/count", petHandler.GetCountPets)
+	router.Delete("/pets/{id}", petHandler.DeletePetByID)
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

@@ -97,3 +97,24 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 		Error: "pet not found",
 	})
 }
+
+func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	isDeleted := h.service.DeleteById(id)
+	if isDeleted {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(ErrorResponse{
+		Error: "pet not found",
+	})
+}

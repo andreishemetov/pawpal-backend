@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/andreishemetov/pawpal/internal/handler"
+	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 /*
@@ -23,6 +25,14 @@ func lesson5() {
 	fmt.Println("Server running on :8080")
 
 	router := chi.NewRouter()
+		// Standard useful middlewares
+	router.Use(chiMiddleware.RequestID)  // generates request IDs
+	router.Use(chiMiddleware.RealIP)     // uses X-Forwarded-For, etc.
+	router.Use(middleware.Logging)       // our custom logger
+	router.Use(chiMiddleware.Recoverer)  // recover panics
+
+
+
 	petService := service.NewPetService()
 	petHandler := handler.NewPetHandler(petService)
 

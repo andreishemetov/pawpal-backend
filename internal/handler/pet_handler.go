@@ -2,14 +2,15 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/andreishemetov/pawpal/internal/data"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
-
 
 type ErrorResponse struct {
 	Error string `json:"error"`
@@ -41,6 +42,8 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
+	reqID := chiMiddleware.GetReqID(r.Context()) // string
+	fmt.Printf("Request ID: %s", reqID)
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var pets = []data.Pet{}
 
 type ErrorResponse struct {
 	Error string `json:"error"`
@@ -21,10 +20,10 @@ type CountResponse struct {
 }
 
 type PetHandler struct {
-	service *service.PetService
+	service service.PetStore
 }
 
-func NewPetHandler(service *service.PetService) *PetHandler {
+func NewPetHandler(service service.PetStore) *PetHandler {
 	return &PetHandler{service: service}
 }
 

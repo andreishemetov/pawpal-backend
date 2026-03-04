@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"sync"
 
 	"github.com/andreishemetov/pawpal/internal/data"
@@ -17,18 +18,19 @@ func NewPetService() *PetService {
 	}
 }
 
-func (s *PetService) GetAll() []data.Pet {
+func (s *PetService) GetAll(ctx context.Context) ([]data.Pet, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	return append([]data.Pet{}, s.pets...)
+	return append([]data.Pet{}, s.pets...), nil
 }
 
-func (s *PetService) Add(pet data.Pet) {
+func (s *PetService) Add(ctx context.Context, pet data.Pet) (data.Pet, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	s.pets = append(s.pets, pet)
+	return pet, nil
 }
 
 func (s *PetService) GetByID(id int) (*data.Pet, bool) {

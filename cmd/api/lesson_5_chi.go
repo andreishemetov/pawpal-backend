@@ -1,13 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/andreishemetov/pawpal/internal/handler"
 	"github.com/andreishemetov/pawpal/internal/middleware"
-	"github.com/andreishemetov/pawpal/internal/service"
+	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
@@ -25,16 +26,20 @@ func lesson5() {
 	fmt.Println("Server running on :8080")
 
 	router := chi.NewRouter()
-		// Standard useful middlewares
-	router.Use(chiMiddleware.RequestID)  // generates request IDs
-	router.Use(chiMiddleware.RealIP)     // uses X-Forwarded-For, etc.
-	router.Use(middleware.Logging)       // our custom logger
-	router.Use(chiMiddleware.Recoverer)  // recover panics
+	// Standard useful middlewares
+	router.Use(chiMiddleware.RequestID) // generates request IDs
+	router.Use(chiMiddleware.RealIP)    // uses X-Forwarded-For, etc.
+	router.Use(middleware.Logging)      // our custom logger
+	router.Use(chiMiddleware.Recoverer) // recover panics
 
-
-
-	petService := service.NewPetService()
-	petHandler := handler.NewPetHandler(petService)
+	dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	repo := repo.NewPetPostgresRepo(db)
+	petHandler := handler.NewPetHandler(repo)
 
 	router.Get("/health", getHealth)
 	router.Get("/pets", petHandler.GetPets)

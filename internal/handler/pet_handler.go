@@ -32,13 +32,13 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	jsonData, err := json.Marshal(h.service.GetAll())
+	pets, err := h.service.GetAll(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "failed to load pets", http.StatusInternalServerError)
 		return
 	}
 
-	w.Write(jsonData)
+	json.NewEncoder(w).Encode(pets)
 }
 
 func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
@@ -63,14 +63,19 @@ func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.service.Add(pet)
+	h.service.Add(r.Context(), pet)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(pet)
 }
 
 func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
-	count := len(h.service.GetAll())
+	pets, err := h.service.GetAll(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load pets", http.StatusInternalServerError)
+		return
+	}
+	count := len(pets)
 	w.Header().Set("Content-Type", "application/json")
 	response := CountResponse{
 		Count: count,

@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: pawpal
+      POSTGRES_PASSWORD: pawpal_pass
+      POSTGRES_DB: pawpal_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+volumes:
+  db-data:

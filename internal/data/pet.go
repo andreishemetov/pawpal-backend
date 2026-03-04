@@ -1,12 +1,17 @@
 package data
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type Pet struct {
 	ID   int	`json:"id"`
 	Name string `json:"name"`
 	Type string `json:"type"`
 	Age  int    `json:"age"`
+	Visits int    `json:"visits"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (p Pet) String() string {

@@ -11,6 +11,6 @@ import (
 type PetStore interface {
 	GetAll(ctx context.Context) ([]data.Pet, error)
 	Add(ctx context.Context, p data.Pet) (data.Pet, error)
-	GetByID(ctx context.Context, id int) (*data.Pet, bool)
-	DeleteById(ctx context.Context, id int) bool
+	GetByID(ctx context.Context, id int) (data.Pet, error)
+	DeleteByID(ctx context.Context, id int) (bool, error)
 }

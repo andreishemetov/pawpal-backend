@@ -92,7 +92,7 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pet, found := h.service.GetByID(id)
+	pet, err := h.service.GetByID(r.Context(), id)
 	if found {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(pet)
@@ -105,23 +105,23 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
+// func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
+// 	idStr := chi.URLParam(r, "id")
+// 	id, err := strconv.Atoi(idStr)
+// 	if err != nil {
+// 		http.Error(w, "invalid id", http.StatusBadRequest)
+// 		return
+// 	}
 
-	isDeleted := h.service.DeleteById(id)
-	if isDeleted {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
+// 	isDeleted := h.service.DeleteById(id)
+// 	if isDeleted {
+// 		w.WriteHeader(http.StatusNoContent)
+// 		return
+// 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(ErrorResponse{
-		Error: "pet not found",
-	})
-}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusNotFound)
+// 	json.NewEncoder(w).Encode(ErrorResponse{
+// 		Error: "pet not found",
+// 	})
+// }

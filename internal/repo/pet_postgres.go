@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/andreishemetov/pawpal/internal/data"
 )
@@ -43,4 +44,42 @@ func (r *PetPostgresRepo) Add(ctx context.Context, p data.Pet) (data.Pet, error)
 		return data.Pet{}, err
 	}
 	return p, nil
+}
+
+var ErrNotFound = errors.New("not found")
+
+func (r *PetPostgresRepo) GetByID(ctx context.Context, id int) (data.Pet, error) {
+	var p data.Pet
+
+	err := r.db.QueryRowContext(
+		ctx,
+		`SELECT id, name, type, age, visits FROM pets WHERE id = $1`,
+		id,
+	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits)
+
+	if err == sql.ErrNoRows {
+		return data.Pet{}, ErrNotFound
+	}
+	if err != nil {
+		return data.Pet{}, err
+	}
+
+	return p, nil
+}
+
+func (r *PetPostgresRepo) DeleteByID(ctx context.Context, id int) (bool, error) {
+	res, err := r.db.ExecContext(ctx,
+		`DELETE FROM pets WHERE id = $1`,
+		id,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	return rows > 0, nil
 }

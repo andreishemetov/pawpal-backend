@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/andreishemetov/pawpal/internal/data"
 	"github.com/andreishemetov/pawpal/internal/handler"
+	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -17,32 +19,33 @@ type fakeStore struct {
 	pets []data.Pet
 }
 
-func (f *fakeStore) GetAll() []data.Pet {
+func (f *fakeStore) GetAll(ctx context.Context) ([]data.Pet, error) {
 	// return copy
-	return append([]data.Pet(nil), f.pets...)
+	return append([]data.Pet(nil), f.pets...), nil
 }
 
-func (f *fakeStore) Add(p data.Pet) {
+func (f *fakeStore) Add(ctx context.Context, p data.Pet) (data.Pet, error) {
 	f.pets = append(f.pets, p)
+	return p, nil
 }
 
-func (f *fakeStore) GetByID(id int) (*data.Pet, bool) {
+func (f *fakeStore) GetByID(ctx context.Context, id int) (*data.Pet, error) {
 	for i := range f.pets {
 		if f.pets[i].ID == id {
-			return &f.pets[i], true
+			return &f.pets[i], nil
 		}
 	}
-	return nil, false
+	return nil, repo.ErrNotFound
 }
 
-func (f *fakeStore) DeleteById(id int) bool {
+func (f *fakeStore) DeleteById(ctx context.Context, id int) (bool, error) {
 	for i := range f.pets {
 		if f.pets[i].ID == id {
 			f.pets = append(f.pets[:i], f.pets[i+1:]...)
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, repo.ErrNotFound
 }
 
 // helper to create router with injected fake
@@ -52,7 +55,7 @@ func setupRouterWithFake(fake *fakeStore) *chi.Mux {
 	r := chi.NewRouter()
 	r.Get("/pets", h.GetPets)
 	r.Post("/pets", h.PostPet)
-	r.Get("/pets/{id}", h.GetPetByID)
+	// r.Get("/pets/{id}", h.GetPetByID)
 	return r
 }
 

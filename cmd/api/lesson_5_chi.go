@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/andreishemetov/pawpal/internal/handler"
 	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/repo"
@@ -37,16 +39,16 @@ func lesson5() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	repo := repo.NewPetPostgresRepo(db)
 	petHandler := handler.NewPetHandler(repo)
 
-	router.Get("/health", getHealth)
+	// router.Get("/health", getHealth)
 	router.Get("/pets", petHandler.GetPets)
 	router.Post("/pets", petHandler.PostPet)
-	router.Get("/pets/{id}", petHandler.GetPetByID)
-	router.Get("/pets/count", petHandler.GetCountPets)
-	router.Delete("/pets/{id}", petHandler.DeletePetByID)
+	// router.Get("/pets/{id}", petHandler.GetPetByID)
+	// router.Get("/pets/count", petHandler.GetCountPets)
+	// router.Delete("/pets/{id}", petHandler.DeletePetByID)
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

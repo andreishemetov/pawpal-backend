@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -71,7 +72,7 @@ func TestGetPetByID_NotFoundAndFound(t *testing.T) {
 	r, svc := setupRouter()
 
 	// seed one pet
-	svc.Add(data.Pet{ID: 10, Name: "Milo", Age: 4})
+	_, _ = svc.Add(context.Background(), data.Pet{ID: 10, Name: "Milo", Age: 4})
 
 	// not found
 	req1 := httptest.NewRequest(http.MethodGet, "/pets/999", nil)

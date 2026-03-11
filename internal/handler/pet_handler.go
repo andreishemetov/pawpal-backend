@@ -2,11 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/andreishemetov/pawpal/internal/data"
+	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -91,37 +93,37 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
 	}
-
+			
 	pet, err := h.service.GetByID(r.Context(), id)
-	if found {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(pet)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			http.Error(w, "pet not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(ErrorResponse{
-		Error: "pet not found",
-	})
+	json.NewEncoder(w).Encode(pet)
 }
 
-// func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
-// 	idStr := chi.URLParam(r, "id")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		http.Error(w, "invalid id", http.StatusBadRequest)
-// 		return
-// 	}
+func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
 
-// 	isDeleted := h.service.DeleteById(id)
-// 	if isDeleted {
-// 		w.WriteHeader(http.StatusNoContent)
-// 		return
-// 	}
+	isDeleted, err := h.service.DeleteByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if !isDeleted {
+		http.Error(w, "pet not found", http.StatusNotFound)
+		return
+	}
 
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusNotFound)
-// 	json.NewEncoder(w).Encode(ErrorResponse{
-// 		Error: "pet not found",
-// 	})
-// }
+	w.WriteHeader(http.StatusNoContent)
+}

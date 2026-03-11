@@ -29,16 +29,16 @@ func (f *fakeStore) Add(ctx context.Context, p data.Pet) (data.Pet, error) {
 	return p, nil
 }
 
-func (f *fakeStore) GetByID(ctx context.Context, id int) (*data.Pet, error) {
+func (f *fakeStore) GetByID(ctx context.Context, id int) (data.Pet, error) {
 	for i := range f.pets {
 		if f.pets[i].ID == id {
-			return &f.pets[i], nil
+			return f.pets[i], nil
 		}
 	}
-	return nil, repo.ErrNotFound
+	return data.Pet{}, repo.ErrNotFound
 }
 
-func (f *fakeStore) DeleteById(ctx context.Context, id int) (bool, error) {
+func (f *fakeStore) DeleteByID(ctx context.Context, id int) (bool, error) {
 	for i := range f.pets {
 		if f.pets[i].ID == id {
 			f.pets = append(f.pets[:i], f.pets[i+1:]...)
@@ -55,7 +55,8 @@ func setupRouterWithFake(fake *fakeStore) *chi.Mux {
 	r := chi.NewRouter()
 	r.Get("/pets", h.GetPets)
 	r.Post("/pets", h.PostPet)
-	// r.Get("/pets/{id}", h.GetPetByID)
+	r.Get("/pets/{id}", h.GetPetByID)
+	r.Delete("/pets/{id}", h.DeletePetByID)
 	return r
 }
 

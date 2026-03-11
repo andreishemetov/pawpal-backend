@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -29,10 +30,11 @@ func lesson5() {
 
 	router := chi.NewRouter()
 	// Standard useful middlewares
-	router.Use(chiMiddleware.RequestID) // generates request IDs
-	router.Use(chiMiddleware.RealIP)    // uses X-Forwarded-For, etc.
-	router.Use(middleware.Logging)      // our custom logger
-	router.Use(chiMiddleware.Recoverer) // recover panics
+	router.Use(chiMiddleware.RequestID)                    // generates request IDs
+	router.Use(chiMiddleware.RealIP)                       // uses X-Forwarded-For, etc.
+	router.Use(chiMiddleware.Timeout(5 * time.Second))     // request timeout
+	router.Use(middleware.Logging)                         // our custom logger
+	router.Use(chiMiddleware.Recoverer)                    // recover panics
 
 	dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
 	db, err := sql.Open("pgx", dsn)
@@ -49,6 +51,7 @@ func lesson5() {
 	router.Get("/pets/{id}", petHandler.GetPetByID)
 	router.Get("/pets/count", petHandler.GetCountPets)
 	router.Delete("/pets/{id}", petHandler.DeletePetByID)
+	router.Put("/pets/{id}", petHandler.UpdatePet)
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

@@ -13,4 +13,5 @@ type PetStore interface {
 	Add(ctx context.Context, p data.Pet) (data.Pet, error)
 	GetByID(ctx context.Context, id int) (data.Pet, error)
 	DeleteByID(ctx context.Context, id int) (bool, error)
+	Update(ctx context.Context, id int, p data.Pet) (data.Pet, error)
 }

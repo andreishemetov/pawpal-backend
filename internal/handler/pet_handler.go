@@ -93,7 +93,7 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
 	}
-			
+
 	pet, err := h.service.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repo.ErrNotFound) {
@@ -126,4 +126,45 @@ func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error: "invalid id",
+		})
+		return
+	}
+
+	var pet data.Pet
+	err = json.NewDecoder(r.Body).Decode(&pet)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error: "invalid json",
+		})
+		return
+	}
+
+	pet, err = h.service.Update(r.Context(), id, pet)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(ErrorResponse{
+				Error: "pet not found",
+			})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error: "internal error",
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(pet)
 }

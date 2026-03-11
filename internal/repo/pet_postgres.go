@@ -83,3 +83,22 @@ func (r *PetPostgresRepo) DeleteByID(ctx context.Context, id int) (bool, error) 
 
 	return rows > 0, nil
 }
+
+func (r *PetPostgresRepo) Update(ctx context.Context, id int, p data.Pet) (data.Pet, error) {
+	err := r.db.QueryRowContext(
+		ctx,
+		`UPDATE pets
+		 SET name = $1, type = $2, age = $3, visits = $4
+		 WHERE id = $5
+		 RETURNING id, name, type, age, visits`,
+		p.Name, p.Type, p.Age, p.Visits, id,
+	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits)
+	
+	if err == sql.ErrNoRows {
+		return data.Pet{}, ErrNotFound
+	}
+	if err != nil {
+		return data.Pet{}, err
+	}
+	return p, nil
+}

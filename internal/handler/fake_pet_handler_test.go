@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/andreishemetov/pawpal/internal/data"
+	"github.com/andreishemetov/pawpal/internal/errs"
 	"github.com/andreishemetov/pawpal/internal/handler"
-	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -19,9 +19,9 @@ type fakeStore struct {
 	pets []data.Pet
 }
 
-func (f *fakeStore) GetAll(ctx context.Context) ([]data.Pet, error) {
-	// return copy
-	return append([]data.Pet(nil), f.pets...), nil
+func (f *fakeStore) GetAll(ctx context.Context, q data.PetQuery) ([]data.Pet, int, error) {
+	pets := append([]data.Pet(nil), f.pets...)
+	return pets, len(pets), nil
 }
 
 func (f *fakeStore) Add(ctx context.Context, p data.Pet) (data.Pet, error) {
@@ -35,7 +35,7 @@ func (f *fakeStore) GetByID(ctx context.Context, id int) (data.Pet, error) {
 			return f.pets[i], nil
 		}
 	}
-	return data.Pet{}, repo.ErrNotFound
+	return data.Pet{}, errs.ErrNotFound
 }
 
 func (f *fakeStore) DeleteByID(ctx context.Context, id int) (bool, error) {
@@ -45,7 +45,18 @@ func (f *fakeStore) DeleteByID(ctx context.Context, id int) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, repo.ErrNotFound
+	return false, errs.ErrNotFound
+}
+
+func (f *fakeStore) Update(ctx context.Context, id int, p data.Pet) (data.Pet, error) {
+	for i := range f.pets {
+		if f.pets[i].ID == id {
+			f.pets[i] = p
+			f.pets[i].ID = id
+			return f.pets[i], nil
+		}
+	}
+	return data.Pet{}, errs.ErrNotFound
 }
 
 // helper to create router with injected fake

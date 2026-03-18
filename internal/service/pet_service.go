@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/andreishemetov/pawpal/internal/data"
-	"github.com/andreishemetov/pawpal/internal/repo"
+	"github.com/andreishemetov/pawpal/internal/errs"
 )
 
 type PetService struct {
@@ -19,11 +19,12 @@ func NewPetService() *PetService {
 	}
 }
 
-func (s *PetService) GetAll(ctx context.Context) ([]data.Pet, error) {
+func (s *PetService) GetAll(ctx context.Context, q data.PetQuery) ([]data.Pet, int, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	return append([]data.Pet{}, s.pets...), nil
+	pets := append([]data.Pet{}, s.pets...)
+	return pets, len(pets), nil
 }
 
 func (s *PetService) Add(ctx context.Context, pet data.Pet) (data.Pet, error) {
@@ -43,7 +44,7 @@ func (s *PetService) GetByID(ctx context.Context, id int) (data.Pet, error) {
 			return s.pets[i], nil
 		}
 	}
-	return data.Pet{}, repo.ErrNotFound
+	return data.Pet{}, errs.ErrNotFound
 }
 
 func (s *PetService) DeleteByID(ctx context.Context, id int) (bool, error) {
@@ -56,5 +57,19 @@ func (s *PetService) DeleteByID(ctx context.Context, id int) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, repo.ErrNotFound
+	return false, errs.ErrNotFound
+}
+
+func (s *PetService) Update(ctx context.Context, id int, p data.Pet) (data.Pet, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for i := range s.pets {
+		if s.pets[i].ID == id {
+			s.pets[i] = p
+			s.pets[i].ID = id
+			return s.pets[i], nil
+		}
+	}
+	return data.Pet{}, errs.ErrNotFound
 }

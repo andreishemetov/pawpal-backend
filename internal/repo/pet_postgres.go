@@ -3,9 +3,11 @@ package repo
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/andreishemetov/pawpal/internal/data"
+	"github.com/andreishemetov/pawpal/internal/errs"
 )
 
 type PetPostgresRepo struct {
@@ -16,10 +18,63 @@ func NewPetPostgresRepo(db *sql.DB) *PetPostgresRepo {
 	return &PetPostgresRepo{db: db}
 }
 
-func (r *PetPostgresRepo) GetAll(ctx context.Context) ([]data.Pet, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, name, type, age, visits FROM pets ORDER BY id`)
+func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.Pet, int, error) {
+	// sort whitelist (avoid SQL injection)
+	orderBy := "id"
+	switch q.Sort {
+	case "", "id":
+		orderBy = "id"
+	case "name":
+		orderBy = "name"
+	case "age":
+		orderBy = "age"
+	case "visits":
+		orderBy = "visits"
+	}
+
+	where := []string{"TRUE"}
+	args := []any{}
+	argN := 1
+
+	if q.Type != "" {
+		where = append(where, fmt.Sprintf("type = $%d", argN))
+		args = append(args, q.Type)
+		argN++
+	}
+
+	if q.Q != "" {
+		where = append(where, fmt.Sprintf("name ILIKE $%d", argN))
+		args = append(args, "%"+q.Q+"%")
+		argN++
+	}
+
+	whereSQL := strings.Join(where, " AND ")
+
+	// total count
+	var total int
+	countSQL := "SELECT COUNT(*) FROM pets WHERE " + whereSQL
+	if err := r.db.QueryRowContext(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (q.Page - 1) * q.Limit
+
+	// data query
+	args = append(args, q.Limit, offset)
+	limitArg := argN
+	offsetArg := argN + 1
+
+	dataSQL := fmt.Sprintf(`
+		SELECT id, name, type, age, visits
+		FROM pets
+		WHERE %s
+		ORDER BY %s
+		LIMIT $%d OFFSET $%d
+	`, whereSQL, orderBy, limitArg, offsetArg)
+
+	rows, err := r.db.QueryContext(ctx, dataSQL, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -27,11 +82,14 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context) ([]data.Pet, error) {
 	for rows.Next() {
 		var p data.Pet
 		if err := rows.Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		pets = append(pets, p)
 	}
-	return pets, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return pets, total, nil
 }
 
 func (r *PetPostgresRepo) Add(ctx context.Context, p data.Pet) (data.Pet, error) {
@@ -46,7 +104,6 @@ func (r *PetPostgresRepo) Add(ctx context.Context, p data.Pet) (data.Pet, error)
 	return p, nil
 }
 
-var ErrNotFound = errors.New("not found")
 
 func (r *PetPostgresRepo) GetByID(ctx context.Context, id int) (data.Pet, error) {
 	var p data.Pet
@@ -58,7 +115,7 @@ func (r *PetPostgresRepo) GetByID(ctx context.Context, id int) (data.Pet, error)
 	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits)
 
 	if err == sql.ErrNoRows {
-		return data.Pet{}, ErrNotFound
+		return data.Pet{}, errs.ErrNotFound
 	}
 	if err != nil {
 		return data.Pet{}, err
@@ -93,9 +150,9 @@ func (r *PetPostgresRepo) Update(ctx context.Context, id int, p data.Pet) (data.
 		 RETURNING id, name, type, age, visits`,
 		p.Name, p.Type, p.Age, p.Visits, id,
 	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits)
-	
+
 	if err == sql.ErrNoRows {
-		return data.Pet{}, ErrNotFound
+		return data.Pet{}, errs.ErrNotFound
 	}
 	if err != nil {
 		return data.Pet{}, err

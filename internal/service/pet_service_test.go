@@ -17,7 +17,7 @@ func TestPetService_AddAndGet(t *testing.T) {
 	s.Add(context.Background(), p1)
 	s.Add(context.Background(), p2)
 
-	all, _ := s.GetAll(context.Background())
+	all, _, _ := s.GetAll(context.Background(), data.PetQuery{})
 	if len(all) != 2 {
 		t.Fatalf("expected 2 pets, got %d", len(all))
 	}
@@ -35,7 +35,7 @@ func TestPetService_GetByID_NotFound(t *testing.T) {
 	s := service.NewPetService()
 
 	_, err := s.GetByID(context.Background(), 999)
-	if err != nil {
+	if err == nil {
 		t.Fatalf("expected not found")
 	}
 }
@@ -52,7 +52,7 @@ func TestPetService_DeleteByID(t *testing.T) {
 	}
 
 	_, err = s.GetByID(context.Background(), 1)
-	if err != nil {
+	if err == nil {
 		t.Fatalf("expected pet 1 to be gone")
 	}
 }

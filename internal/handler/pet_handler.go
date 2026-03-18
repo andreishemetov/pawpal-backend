@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/andreishemetov/pawpal/internal/data"
-	"github.com/andreishemetov/pawpal/internal/repo"
+	"github.com/andreishemetov/pawpal/internal/errs"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -31,16 +31,40 @@ func NewPetHandler(service service.PetStore) *PetHandler {
 }
 
 func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
+	page := parseIntQuery(r, "page", 1)
+	limit := parseIntQuery(r, "limit", 20)
 
-	w.Header().Set("Content-Type", "application/json")
+	page = clamp(page, 1, 1_000_000)
+	limit = clamp(limit, 1, 100)
+	petType := r.URL.Query().Get("type") // optional
+	q := r.URL.Query().Get("q")          // optional search
+	sort := r.URL.Query().Get("sort")
 
-	pets, err := h.service.GetAll(r.Context())
+	pets, total, err := h.service.GetAll(r.Context(), data.PetQuery{
+		Page:  page,
+		Limit: limit,
+		Type:  petType,
+		Q:     q,
+		Sort:  sort,
+	}) // optional
+
+
 	if err != nil {
 		http.Error(w, "failed to load pets", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(pets)
+	resp := map[string]any{
+		"items": pets,
+		"meta": map[string]any{
+			"page":  page,
+			"limit": limit,
+			"total": total,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
@@ -72,12 +96,12 @@ func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
-	pets, err := h.service.GetAll(r.Context())
+	_, total, err := h.service.GetAll(r.Context(), data.PetQuery{})
 	if err != nil {
 		http.Error(w, "failed to load pets", http.StatusInternalServerError)
 		return
 	}
-	count := len(pets)
+	count := total
 	w.Header().Set("Content-Type", "application/json")
 	response := CountResponse{
 		Count: count,
@@ -96,7 +120,7 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 
 	pet, err := h.service.GetByID(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
+		if errors.Is(err, errs.ErrNotFound) {
 			http.Error(w, "pet not found", http.StatusNotFound)
 			return
 		}
@@ -152,7 +176,7 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 
 	pet, err = h.service.Update(r.Context(), id, pet)
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
+		if errors.Is(err, errs.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(ErrorResponse{
 				Error: "pet not found",
@@ -167,4 +191,26 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(pet)
+}
+
+func parseIntQuery(r *http.Request, key string, def int) int {
+	val := r.URL.Query().Get(key)
+	if val == "" {
+		return def
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		return def
+	}
+	return n
+}
+
+func clamp(n, min, max int) int {
+	if n < min {
+		return min
+	}
+	if n > max {
+		return max
+	}
+	return n
 }

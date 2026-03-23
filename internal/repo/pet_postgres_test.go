@@ -9,7 +9,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
+func setupTestTx(t *testing.T) (*sql.Tx, *sql.DB) {
 	dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
 
 	db, err := sql.Open("pgx", dsn)
@@ -17,25 +17,20 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 
-	if err := db.Ping(); err != nil {
-		t.Fatal(err)
-	}
-
-	return db
-}
-
-func cleanDB(t *testing.T, db *sql.DB) {
-	_, err := db.Exec("DELETE FROM pets")
+	tx, err := db.Begin()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	return tx, db
 }
 
 func TestPetPostgresRepo_AddAndGet(t *testing.T) {
-	db := setupTestDB(t)
-	cleanDB(t, db)
+	tx, db := setupTestTx(t)
+	defer tx.Rollback()
+	defer db.Close()
 
-	repo := NewPetPostgresRepo(db)
+	repo := NewPetPostgresRepo(tx)
 
 	ctx := context.Background()
 
@@ -65,10 +60,11 @@ func TestPetPostgresRepo_AddAndGet(t *testing.T) {
 }
 
 func TestPetPostgresRepo_Delete(t *testing.T) {
-	db := setupTestDB(t)
-	cleanDB(t, db)
+	tx, db := setupTestTx(t)
+	defer tx.Rollback()
+	defer db.Close()
 
-	repo := NewPetPostgresRepo(db)
+	repo := NewPetPostgresRepo(tx)
 	ctx := context.Background()
 
 	pet, _ := repo.Add(ctx, data.Pet{Name: "Milo"})

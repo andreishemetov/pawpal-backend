@@ -15,7 +15,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func setupTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
+func setupTestServer(t *testing.T) (*httptest.Server, *sql.Tx, *sql.DB) {
 	dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
 
 	db, err := sql.Open("pgx", dsn)
@@ -23,7 +23,12 @@ func setupTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
 		t.Fatal(err)
 	}
 
-	repository := repo.NewPetPostgresRepo(db)
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repository := repo.NewPetPostgresRepo(tx)
 	handler := NewPetHandler(repository)
 	router := chi.NewRouter()
 	router.Post("/pets", handler.PostPet)
@@ -31,21 +36,14 @@ func setupTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
 
 	server := httptest.NewServer(router)
 
-	return server, db
-}
-
-func cleanDB(t *testing.T, db *sql.DB) {
-	_, err := db.Exec("DELETE FROM pets")
-	if err != nil {
-		t.Fatal(err)
-	}
+	return server, tx, db
 }
 
 func TestCreateAndGetPet(t *testing.T) {
-	server, db := setupTestServer(t)
+	server, tx, db := setupTestServer(t)
 	defer server.Close()
-
-	cleanDB(t, db)
+	defer tx.Rollback()
+	defer db.Close()
 
 	// Create pet
 	body := `{"name":"Charlie","type":"Dog","age":3,"visits":0}`
@@ -78,10 +76,10 @@ func TestCreateAndGetPet(t *testing.T) {
 }
 
 func TestCreatePet_Validation(t *testing.T) {
-	server, db := setupTestServer(t)
+	server, tx, db := setupTestServer(t)
 	defer server.Close()
-
-	cleanDB(t, db)
+	defer tx.Rollback()
+	defer db.Close()
 
 	resp, err := http.Post(server.URL+"/pets", "application/json", strings.NewReader(`{"age":3}`))
 	if err != nil {

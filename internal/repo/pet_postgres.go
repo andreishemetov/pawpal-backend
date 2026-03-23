@@ -10,12 +10,18 @@ import (
 	"github.com/andreishemetov/pawpal/internal/errs"
 )
 
-type PetPostgresRepo struct {
-	db *sql.DB
+type querier interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-func NewPetPostgresRepo(db *sql.DB) *PetPostgresRepo {
-	return &PetPostgresRepo{db: db}
+type PetPostgresRepo struct {
+	q querier
+}
+
+func NewPetPostgresRepo(q querier) *PetPostgresRepo {
+	return &PetPostgresRepo{q: q}
 }
 
 func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.Pet, int, error) {
@@ -53,7 +59,7 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.P
 	// total count
 	var total int
 	countSQL := "SELECT COUNT(*) FROM pets WHERE " + whereSQL
-	if err := r.db.QueryRowContext(ctx, countSQL, args...).Scan(&total); err != nil {
+	if err := r.q.QueryRowContext(ctx, countSQL, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -72,7 +78,7 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.P
 		LIMIT $%d OFFSET $%d
 	`, whereSQL, orderBy, limitArg, offsetArg)
 
-	rows, err := r.db.QueryContext(ctx, dataSQL, args...)
+	rows, err := r.q.QueryContext(ctx, dataSQL, args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -93,7 +99,7 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.P
 }
 
 func (r *PetPostgresRepo) Add(ctx context.Context, p data.Pet) (data.Pet, error) {
-	err := r.db.QueryRowContext(
+	err := r.q.QueryRowContext(
 		ctx,
 		`INSERT INTO pets (name, type, age, visits) VALUES ($1,$2,$3,$4) RETURNING id`,
 		p.Name, p.Type, p.Age, p.Visits,
@@ -108,7 +114,7 @@ func (r *PetPostgresRepo) Add(ctx context.Context, p data.Pet) (data.Pet, error)
 func (r *PetPostgresRepo) GetByID(ctx context.Context, id int) (data.Pet, error) {
 	var p data.Pet
 
-	err := r.db.QueryRowContext(
+	err := r.q.QueryRowContext(
 		ctx,
 		`SELECT id, name, type, age, visits FROM pets WHERE id = $1`,
 		id,
@@ -125,7 +131,7 @@ func (r *PetPostgresRepo) GetByID(ctx context.Context, id int) (data.Pet, error)
 }
 
 func (r *PetPostgresRepo) DeleteByID(ctx context.Context, id int) (bool, error) {
-	res, err := r.db.ExecContext(ctx,
+	res, err := r.q.ExecContext(ctx,
 		`DELETE FROM pets WHERE id = $1`,
 		id,
 	)
@@ -142,7 +148,7 @@ func (r *PetPostgresRepo) DeleteByID(ctx context.Context, id int) (bool, error) 
 }
 
 func (r *PetPostgresRepo) Update(ctx context.Context, id int, p data.Pet) (data.Pet, error) {
-	err := r.db.QueryRowContext(
+	err := r.q.QueryRowContext(
 		ctx,
 		`UPDATE pets
 		 SET name = $1, type = $2, age = $3, visits = $4

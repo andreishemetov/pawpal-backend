@@ -89,10 +89,14 @@ func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.service.Add(r.Context(), pet)
+	created, err := h.service.Add(r.Context(), pet)
+	if err != nil {
+		http.Error(w, "failed to create pet", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(pet)
+	json.NewEncoder(w).Encode(created)
 }
 
 func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {

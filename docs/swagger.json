@@ -1,11 +1,25 @@
 {
+    "schemes": [
+        "http",
+        "https"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "API for managing pets in PawPal.",
         "title": "PawPal API",
-        "contact": {},
+        "termsOfService": "https://example.com/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "https://example.com/support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "1.0"
     },
+    "host": "localhost:8080",
     "basePath": "/",
     "paths": {
         "/pets": {
@@ -54,26 +68,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "$ref": "#/definitions/data.PetsListResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "failed to load pets",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
                         }
                     }
                 }
@@ -109,21 +110,43 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "name is required",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "405": {
+                        "description": "Method not allowed",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "failed to create pet",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pets/count": {
+            "get": {
+                "tags": [
+                    "pets"
+                ],
+                "summary": "Get count of pets",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/data.CountResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "failed to load pets",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -138,6 +161,47 @@
                     "pets"
                 ],
                 "summary": "Get pet by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pet ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/data.Pet"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "pet not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "pets"
+                ],
+                "summary": "Update pet by ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -173,10 +237,56 @@
                         }
                     }
                 }
+            },
+            "delete": {
+                "tags": [
+                    "pets"
+                ],
+                "summary": "Delete pet by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pet ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "pet not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         }
     },
     "definitions": {
+        "data.CountResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                }
+            }
+        },
         "data.Pet": {
             "type": "object",
             "properties": {
@@ -197,6 +307,31 @@
                 },
                 "visits": {
                     "type": "integer"
+                }
+            }
+        },
+        "data.PetsListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data.Pet"
+                    }
+                },
+                "meta": {
+                    "type": "object",
+                    "properties": {
+                        "limit": {
+                            "type": "integer"
+                        },
+                        "page": {
+                            "type": "integer"
+                        },
+                        "total": {
+                            "type": "integer"
+                        }
+                    }
                 }
             }
         },

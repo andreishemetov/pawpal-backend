@@ -1,5 +1,10 @@
 basePath: /
 definitions:
+  data.CountResponse:
+    properties:
+      count:
+        type: integer
+    type: object
   data.Pet:
     properties:
       age:
@@ -15,14 +20,38 @@ definitions:
       visits:
         type: integer
     type: object
+  data.PetsListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/data.Pet'
+        type: array
+      meta:
+        properties:
+          limit:
+            type: integer
+          page:
+            type: integer
+          total:
+            type: integer
+        type: object
+    type: object
   errs.ErrorResponse:
     properties:
       error:
         type: string
     type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: support@example.com
+    name: API Support
+    url: https://example.com/support
   description: API for managing pets in PawPal.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://example.com/terms/
   title: PawPal API
   version: "1.0"
 paths:
@@ -56,20 +85,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errs.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errs.ErrorResponse'
+            $ref: '#/definitions/data.PetsListResponse'
         "500":
-          description: Internal Server Error
+          description: failed to load pets
           schema:
-            $ref: '#/definitions/errs.ErrorResponse'
+            type: string
       summary: List pets
       tags:
       - pets
@@ -92,21 +112,46 @@ paths:
           schema:
             $ref: '#/definitions/data.Pet'
         "400":
-          description: Bad Request
+          description: name is required
           schema:
-            $ref: '#/definitions/errs.ErrorResponse'
-        "404":
-          description: Not Found
+            type: string
+        "405":
+          description: Method not allowed
           schema:
-            $ref: '#/definitions/errs.ErrorResponse'
+            type: string
         "500":
-          description: Internal Server Error
+          description: failed to create pet
           schema:
-            $ref: '#/definitions/errs.ErrorResponse'
+            type: string
       summary: Create a pet
       tags:
       - pets
   /pets/{id}:
+    delete:
+      parameters:
+      - description: Pet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: invalid id
+          schema:
+            type: string
+        "404":
+          description: pet not found
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Delete pet by ID
+      tags:
+      - pets
     get:
       parameters:
       - description: Pet ID
@@ -116,6 +161,33 @@ paths:
         type: integer
       produces:
       - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Pet'
+        "400":
+          description: invalid id
+          schema:
+            type: string
+        "404":
+          description: pet not found
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Get pet by ID
+      tags:
+      - pets
+    put:
+      parameters:
+      - description: Pet ID
+        in: path
+        name: id
+        required: true
+        type: integer
       responses:
         "200":
           description: OK
@@ -133,7 +205,24 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/errs.ErrorResponse'
-      summary: Get pet by ID
+      summary: Update pet by ID
       tags:
       - pets
+  /pets/count:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.CountResponse'
+        "500":
+          description: failed to load pets
+          schema:
+            type: string
+      summary: Get count of pets
+      tags:
+      - pets
+schemes:
+- http
+- https
 swagger: "2.0"

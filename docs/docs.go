@@ -10,7 +10,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "https://example.com/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "https://example.com/support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -62,26 +71,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "$ref": "#/definitions/data.PetsListResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "failed to load pets",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
                         }
                     }
                 }
@@ -117,21 +113,43 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "name is required",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "405": {
+                        "description": "Method not allowed",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "failed to create pet",
                         "schema": {
-                            "$ref": "#/definitions/errs.ErrorResponse"
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pets/count": {
+            "get": {
+                "tags": [
+                    "pets"
+                ],
+                "summary": "Get count of pets",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/data.CountResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "failed to load pets",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -146,6 +164,47 @@ const docTemplate = `{
                     "pets"
                 ],
                 "summary": "Get pet by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pet ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/data.Pet"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "pet not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "pets"
+                ],
+                "summary": "Update pet by ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -181,10 +240,56 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "tags": [
+                    "pets"
+                ],
+                "summary": "Delete pet by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pet ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "pet not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         }
     },
     "definitions": {
+        "data.CountResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                }
+            }
+        },
         "data.Pet": {
             "type": "object",
             "properties": {
@@ -208,6 +313,31 @@ const docTemplate = `{
                 }
             }
         },
+        "data.PetsListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data.Pet"
+                    }
+                },
+                "meta": {
+                    "type": "object",
+                    "properties": {
+                        "limit": {
+                            "type": "integer"
+                        },
+                        "page": {
+                            "type": "integer"
+                        },
+                        "total": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
         "errs.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -222,9 +352,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "",
+	Host:             "localhost:8080",
 	BasePath:         "/",
-	Schemes:          []string{},
+	Schemes:          []string{"http", "https"},
 	Title:            "PawPal API",
 	Description:      "API for managing pets in PawPal.",
 	InfoInstanceName: "swagger",

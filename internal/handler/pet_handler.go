@@ -32,10 +32,8 @@ func NewPetHandler(service service.PetStore) *PetHandler {
 // @Param type query string false "Pet type"
 // @Param q query string false "Search by name"
 // @Param sort query string false "Sort field"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} errs.ErrorResponse
-// @Failure 404 {object} errs.ErrorResponse
-// @Failure 500 {object} errs.ErrorResponse
+// @Success 200 {object} data.PetsListResponse
+// @Failure 500 {string} string "failed to load pets"
 // @Router /pets [get]
 func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 	page := parseIntQuery(r, "page", 1)
@@ -60,14 +58,12 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := map[string]any{
-		"items": pets,
-		"meta": map[string]any{
-			"page":  page,
-			"limit": limit,
-			"total": total,
-		},
+	resp := data.PetsListResponse{
+		Items: pets,
 	}
+	resp.Meta.Page = page
+	resp.Meta.Limit = limit
+	resp.Meta.Total = total
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
@@ -81,9 +77,10 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param pet body data.Pet true "Pet payload"
 // @Success 201 {object} data.Pet
-// @Failure 400 {object} errs.ErrorResponse
-// @Failure 404 {object} errs.ErrorResponse
-// @Failure 500 {object} errs.ErrorResponse
+// @Failure 405 {string} string "Method not allowed"
+// @Failure 400 {string} string "Invalid JSON"
+// @Failure 400 {string} string "name is required"
+// @Failure 500 {string} string "failed to create pet"
 // @Router /pets [post]
 func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 	reqID := chiMiddleware.GetReqID(r.Context()) // string
@@ -117,6 +114,12 @@ func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(created)
 }
 
+// GetCountPets godoc
+// @Summary Get count of pets
+// @Tags pets
+// @Success 200 {object} data.CountResponse
+// @Failure 500 {string} string "failed to load pets"
+// @Router /pets/count [get]
 func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
 	_, total, err := h.service.GetAll(r.Context(), data.PetQuery{})
 	if err != nil {
@@ -138,9 +141,9 @@ func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Pet ID"
 // @Success 200 {object} data.Pet
-// @Failure 400 {object} errs.ErrorResponse
-// @Failure 404 {object} errs.ErrorResponse
-// @Failure 500 {object} errs.ErrorResponse
+// @Failure 400 {string} string "invalid id"
+// @Failure 404 {string} string "pet not found"
+// @Failure 500 {string} string "internal error"
 // @Router /pets/{id} [get]
 func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
@@ -163,6 +166,15 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pet)
 }
 
+// DeletePetByID godoc
+// @Summary Delete pet by ID
+// @Tags pets
+// @Param id path int true "Pet ID"
+// @Success 204 "No Content"
+// @Failure 400 {string} string "invalid id"
+// @Failure 404 {string} string "pet not found"
+// @Failure 500 {string} string "internal error"
+// @Router /pets/{id} [delete]
 func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
@@ -184,6 +196,15 @@ func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// UpdatePet godoc
+// @Summary Update pet by ID
+// @Tags pets
+// @Param id path int true "Pet ID"
+// @Success 200 {object} data.Pet
+// @Failure 400 {object} errs.ErrorResponse
+// @Failure 404 {object} errs.ErrorResponse
+// @Failure 500 {object} errs.ErrorResponse
+// @Router /pets/{id} [put]
 func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	idStr := chi.URLParam(r, "id")

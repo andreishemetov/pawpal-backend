@@ -12,6 +12,7 @@ import (
 	"github.com/andreishemetov/pawpal/internal/handler"
 	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/repo"
+	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -31,11 +32,11 @@ func lesson5() {
 
 	router := chi.NewRouter()
 	// Standard useful middlewares
-	router.Use(chiMiddleware.RequestID)                    // generates request IDs
-	router.Use(chiMiddleware.RealIP)                       // uses X-Forwarded-For, etc.
-	router.Use(chiMiddleware.Timeout(5 * time.Second))     // request timeout
-	router.Use(middleware.Logging)                         // our custom logger
-	router.Use(chiMiddleware.Recoverer)                    // recover panics
+	router.Use(chiMiddleware.RequestID)                // generates request IDs
+	router.Use(chiMiddleware.RealIP)                   // uses X-Forwarded-For, etc.
+	router.Use(chiMiddleware.Timeout(5 * time.Second)) // request timeout
+	router.Use(middleware.Logging)                     // our custom logger
+	router.Use(chiMiddleware.Recoverer)                // recover panics
 
 	dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
 	db, err := sql.Open("pgx", dsn)
@@ -43,8 +44,8 @@ func lesson5() {
 		log.Fatal(err)
 	}
 
-	repo := repo.NewPetPostgresRepo(db)
-	petHandler := handler.NewPetHandler(repo)
+	petRepo := repo.NewPetPostgresRepo(db)
+	petHandler := handler.NewPetHandler(petRepo)
 
 	router.Get("/health", getHealth)
 	router.Get("/pets", petHandler.GetPets)
@@ -53,6 +54,13 @@ func lesson5() {
 	router.Get("/pets/count", petHandler.GetCountPets)
 	router.Delete("/pets/{id}", petHandler.DeletePetByID)
 	router.Put("/pets/{id}", petHandler.UpdatePet)
+
+	userRepo := repo.NewUserPostgresRepo(db)
+	authService := service.NewAuthService(userRepo, "very-secret-key")
+	authHandler := handler.NewAuthHandler(authService)
+
+	router.Post("/signup", authHandler.Signup)
+	router.Post("/login", authHandler.Login)
 
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),

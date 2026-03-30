@@ -14,14 +14,6 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-type CountResponse struct {
-	Count int `json:"count"`
-}
-
 type PetHandler struct {
 	service service.PetStore
 }
@@ -30,6 +22,21 @@ func NewPetHandler(service service.PetStore) *PetHandler {
 	return &PetHandler{service: service}
 }
 
+// GetPets godoc
+// @Summary List pets
+// @Description Get pets with pagination and filtering
+// @Tags pets
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Page size"
+// @Param type query string false "Pet type"
+// @Param q query string false "Search by name"
+// @Param sort query string false "Sort field"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} errs.ErrorResponse
+// @Failure 404 {object} errs.ErrorResponse
+// @Failure 500 {object} errs.ErrorResponse
+// @Router /pets [get]
 func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 	page := parseIntQuery(r, "page", 1)
 	limit := parseIntQuery(r, "limit", 20)
@@ -47,7 +54,6 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 		Q:     q,
 		Sort:  sort,
 	}) // optional
-
 
 	if err != nil {
 		http.Error(w, "failed to load pets", http.StatusInternalServerError)
@@ -67,6 +73,18 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// CreatePet godoc
+// @Summary Create a pet
+// @Description Create a new pet
+// @Tags pets
+// @Accept json
+// @Produce json
+// @Param pet body data.Pet true "Pet payload"
+// @Success 201 {object} data.Pet
+// @Failure 400 {object} errs.ErrorResponse
+// @Failure 404 {object} errs.ErrorResponse
+// @Failure 500 {object} errs.ErrorResponse
+// @Router /pets [post]
 func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 	reqID := chiMiddleware.GetReqID(r.Context()) // string
 	fmt.Printf("Request ID: %s", reqID)
@@ -107,13 +125,23 @@ func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
 	}
 	count := total
 	w.Header().Set("Content-Type", "application/json")
-	response := CountResponse{
+	response := data.CountResponse{
 		Count: count,
 	}
 
 	json.NewEncoder(w).Encode(response)
 }
 
+// GetPetByID godoc
+// @Summary Get pet by ID
+// @Tags pets
+// @Produce json
+// @Param id path int true "Pet ID"
+// @Success 200 {object} data.Pet
+// @Failure 400 {object} errs.ErrorResponse
+// @Failure 404 {object} errs.ErrorResponse
+// @Failure 500 {object} errs.ErrorResponse
+// @Router /pets/{id} [get]
 func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
@@ -162,7 +190,7 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{
+		json.NewEncoder(w).Encode(errs.ErrorResponse{
 			Error: "invalid id",
 		})
 		return
@@ -172,7 +200,7 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&pet)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{
+		json.NewEncoder(w).Encode(errs.ErrorResponse{
 			Error: "invalid json",
 		})
 		return
@@ -182,13 +210,13 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{
+			json.NewEncoder(w).Encode(errs.ErrorResponse{
 				Error: "pet not found",
 			})
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ErrorResponse{
+		json.NewEncoder(w).Encode(errs.ErrorResponse{
 			Error: "internal error",
 		})
 		return

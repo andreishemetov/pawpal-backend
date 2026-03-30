@@ -14,6 +14,7 @@ import (
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 /*
@@ -52,6 +53,10 @@ func lesson5() {
 	router.Get("/pets/count", petHandler.GetCountPets)
 	router.Delete("/pets/{id}", petHandler.DeletePetByID)
 	router.Put("/pets/{id}", petHandler.UpdatePet)
+
+	router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

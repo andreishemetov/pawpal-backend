@@ -31,6 +31,7 @@ func lesson5() {
 	fmt.Println("Server running on :8080")
 
 	router := chi.NewRouter()
+
 	// Standard useful middlewares
 	router.Use(chiMiddleware.RequestID)                // generates request IDs
 	router.Use(chiMiddleware.RealIP)                   // uses X-Forwarded-For, etc.
@@ -43,24 +44,31 @@ func lesson5() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	petRepo := repo.NewPetPostgresRepo(db)
-	petHandler := handler.NewPetHandler(petRepo)
-
-	router.Get("/health", getHealth)
-	router.Get("/pets", petHandler.GetPets)
-	router.Post("/pets", petHandler.PostPet)
-	router.Get("/pets/{id}", petHandler.GetPetByID)
-	router.Get("/pets/count", petHandler.GetCountPets)
-	router.Delete("/pets/{id}", petHandler.DeletePetByID)
-	router.Put("/pets/{id}", petHandler.UpdatePet)
-
 	userRepo := repo.NewUserPostgresRepo(db)
 	authService := service.NewAuthService(userRepo, "very-secret-key")
 	authHandler := handler.NewAuthHandler(authService)
 
 	router.Post("/signup", authHandler.Signup)
 	router.Post("/login", authHandler.Login)
+
+	authMiddleware := middleware.AuthMiddleware("very-secret-key")
+
+	petRepo := repo.NewPetPostgresRepo(db)
+	petHandler := handler.NewPetHandler(petRepo)
+
+	router.Get("/health", getHealth)
+
+	router.Group(
+		func(r chi.Router) {
+			r.Use(authMiddleware)
+			r.Get("/pets", petHandler.GetPets)
+			r.Post("/pets", petHandler.PostPet)
+			r.Get("/pets/{id}", petHandler.GetPetByID)
+			r.Get("/pets/count", petHandler.GetCountPets)
+			r.Delete("/pets/{id}", petHandler.DeletePetByID)
+			r.Put("/pets/{id}", petHandler.UpdatePet)
+		},
+	)
 
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),

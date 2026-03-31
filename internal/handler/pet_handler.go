@@ -9,6 +9,7 @@ import (
 
 	"github.com/andreishemetov/pawpal/internal/data"
 	"github.com/andreishemetov/pawpal/internal/errs"
+	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -36,6 +37,10 @@ func NewPetHandler(service service.PetStore) *PetHandler {
 // @Failure 500 {string} string "failed to load pets"
 // @Router /pets [get]
 func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
+
+	if !userIDExists(w, r) {
+		return
+	}
 	page := parseIntQuery(r, "page", 1)
 	limit := parseIntQuery(r, "limit", 20)
 
@@ -83,6 +88,11 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "failed to create pet"
 // @Router /pets [post]
 func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
+
+	if !userIDExists(w, r) {
+		return
+	}
+
 	reqID := chiMiddleware.GetReqID(r.Context()) // string
 	fmt.Printf("Request ID: %s", reqID)
 	if r.Method != http.MethodPost {
@@ -121,6 +131,11 @@ func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "failed to load pets"
 // @Router /pets/count [get]
 func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
+
+	if !userIDExists(w, r) {
+		return
+	}
+
 	_, total, err := h.service.GetAll(r.Context(), data.PetQuery{})
 	if err != nil {
 		http.Error(w, "failed to load pets", http.StatusInternalServerError)
@@ -146,6 +161,11 @@ func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "internal error"
 // @Router /pets/{id} [get]
 func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
+
+	if !userIDExists(w, r) {
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -176,6 +196,11 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "internal error"
 // @Router /pets/{id} [delete]
 func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
+
+	if !userIDExists(w, r) {
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -206,6 +231,11 @@ func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} errs.ErrorResponse
 // @Router /pets/{id} [put]
 func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
+
+	if !userIDExists(w, r) {
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
@@ -244,6 +274,16 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(pet)
+}
+
+func userIDExists(w http.ResponseWriter, r *http.Request) bool {
+	id, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return false
+	}
+	fmt.Println("current user id:", id)
+	return true
 }
 
 func parseIntQuery(r *http.Request, key string, def int) int {

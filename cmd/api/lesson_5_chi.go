@@ -86,6 +86,11 @@ func getHealth(w http.ResponseWriter, r *http.Request) {
 /*
 curl -X POST http://localhost:8080/pets \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"id":1,"name":"Charlie","age":3,"visits":0}'
+
+curl -X POST http://localhost:8080/pets \
+  -H "Content-Type: application/json" \
   -d '{"id":1,"name":"Charlie","age":3,"visits":0}'
 
 

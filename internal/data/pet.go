@@ -6,12 +6,13 @@ import (
 )
 
 type Pet struct {
-	ID   int	`json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Age  int    `json:"age"`
-	Visits int    `json:"visits"`
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"`
+	Age       int       `json:"age"`
+	Visits    int       `json:"visits"`
 	CreatedAt time.Time `json:"created_at"`
+	UserID    int       `json:"user_id"`
 }
 
 func (p Pet) String() string {

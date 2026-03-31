@@ -24,7 +24,7 @@ func NewPetPostgresRepo(q querier) *PetPostgresRepo {
 	return &PetPostgresRepo{q: q}
 }
 
-func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.Pet, int, error) {
+func (r *PetPostgresRepo) GetAll(ctx context.Context, userID int, q data.PetQuery) ([]data.Pet, int, error) {
 	// sort whitelist (avoid SQL injection)
 	orderBy := "id"
 	switch q.Sort {
@@ -38,9 +38,9 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.P
 		orderBy = "visits"
 	}
 
-	where := []string{"TRUE"}
-	args := []any{}
-	argN := 1
+	where := []string{"user_id = $1"}
+	args := []any{userID}
+	argN := 2
 
 	if q.Type != "" {
 		where = append(where, fmt.Sprintf("type = $%d", argN))
@@ -101,8 +101,10 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context, q data.PetQuery) ([]data.P
 func (r *PetPostgresRepo) Add(ctx context.Context, p data.Pet) (data.Pet, error) {
 	err := r.q.QueryRowContext(
 		ctx,
-		`INSERT INTO pets (name, type, age, visits) VALUES ($1,$2,$3,$4) RETURNING id`,
-		p.Name, p.Type, p.Age, p.Visits,
+		`INSERT INTO pets (name, type, age, visits, user_id)
+		 VALUES ($1,$2,$3,$4,$5)
+		 RETURNING id`,
+		p.Name, p.Type, p.Age, p.Visits, p.UserID,
 	).Scan(&p.ID)
 	if err != nil {
 		return data.Pet{}, err
@@ -111,14 +113,16 @@ func (r *PetPostgresRepo) Add(ctx context.Context, p data.Pet) (data.Pet, error)
 }
 
 
-func (r *PetPostgresRepo) GetByID(ctx context.Context, id int) (data.Pet, error) {
+func (r *PetPostgresRepo) GetByID(ctx context.Context, userID int, id int) (data.Pet, error) {
 	var p data.Pet
 
 	err := r.q.QueryRowContext(
 		ctx,
-		`SELECT id, name, type, age, visits FROM pets WHERE id = $1`,
-		id,
-	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits)
+		`SELECT id, name, type, age, visits, user_id 
+		FROM pets
+		WHERE id = $1 AND user_id = $2`,
+		id, userID,
+	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits, &p.UserID)
 
 	if err == sql.ErrNoRows {
 		return data.Pet{}, errs.ErrNotFound
@@ -130,10 +134,11 @@ func (r *PetPostgresRepo) GetByID(ctx context.Context, id int) (data.Pet, error)
 	return p, nil
 }
 
-func (r *PetPostgresRepo) DeleteByID(ctx context.Context, id int) (bool, error) {
+func (r *PetPostgresRepo) DeleteByID(ctx context.Context, userID int, id int) (bool, error) {
 	res, err := r.q.ExecContext(ctx,
-		`DELETE FROM pets WHERE id = $1`,
+		`DELETE FROM pets WHERE id = $1 AND user_id = $2`,
 		id,
+		userID,
 	)
 	if err != nil {
 		return false, err
@@ -147,15 +152,15 @@ func (r *PetPostgresRepo) DeleteByID(ctx context.Context, id int) (bool, error) 
 	return rows > 0, nil
 }
 
-func (r *PetPostgresRepo) Update(ctx context.Context, id int, p data.Pet) (data.Pet, error) {
+func (r *PetPostgresRepo) Update(ctx context.Context, userID int, id int, p data.Pet) (data.Pet, error) {
 	err := r.q.QueryRowContext(
 		ctx,
 		`UPDATE pets
 		 SET name = $1, type = $2, age = $3, visits = $4
-		 WHERE id = $5
-		 RETURNING id, name, type, age, visits`,
-		p.Name, p.Type, p.Age, p.Visits, id,
-	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits)
+		 WHERE id = $5 AND user_id = $6
+		 RETURNING id, name, type, age, visits, user_id`,
+		p.Name, p.Type, p.Age, p.Visits, id, userID,
+	).Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits, &p.UserID)
 
 	if err == sql.ErrNoRows {
 		return data.Pet{}, errs.ErrNotFound

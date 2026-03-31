@@ -9,9 +9,9 @@ import (
 // PetStore describes operations the handler depends on.
 // PetService (concrete) will implicitly implement this.
 type PetStore interface {
-	GetAll(ctx context.Context, q data.PetQuery) ([]data.Pet, int, error)
+	GetAll(ctx context.Context, userID int, q data.PetQuery) ([]data.Pet, int, error)
 	Add(ctx context.Context, p data.Pet) (data.Pet, error)
-	GetByID(ctx context.Context, id int) (data.Pet, error)
-	DeleteByID(ctx context.Context, id int) (bool, error)
-	Update(ctx context.Context, id int, p data.Pet) (data.Pet, error)
+	GetByID(ctx context.Context, userID int, id int) (data.Pet, error)
+	DeleteByID(ctx context.Context, userID int, id int) (bool, error)
+	Update(ctx context.Context, userID int, id int, p data.Pet) (data.Pet, error)
 }

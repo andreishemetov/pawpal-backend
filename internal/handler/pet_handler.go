@@ -276,14 +276,14 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pet)
 }
 
-func userIDExists(w http.ResponseWriter, r *http.Request) bool {
+func getUserId(w http.ResponseWriter, r *http.Request) (int, bool) {
 	id, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return false
+		return 0, false
 	}
 	fmt.Println("current user id:", id)
-	return true
+	return id, true
 }
 
 func parseIntQuery(r *http.Request, key string, def int) int {

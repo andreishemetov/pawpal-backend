@@ -96,4 +96,15 @@ curl -X POST http://localhost:8080/pets \
 
 curl http://localhost:8080/pets
 
+curl http://localhost:8080/pets \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+curl -X POST http://localhost:8080/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"123456"}'
+
+  curl -X POST http://localhost:8080/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"123456"}'
+
 */

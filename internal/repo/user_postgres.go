@@ -47,3 +47,19 @@ func (r *UserPostgresRepo) GetByEmail(ctx context.Context, email string) (data.U
 
 	return u, err
 }
+
+func (r *UserPostgresRepo) GetByID(ctx context.Context, id int) (data.User, error) {
+	var u data.User
+
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, email, password_hash
+		FROM users
+		WHERE id = $1
+	`, id).Scan(&u.ID, &u.Email, &u.PasswordHash)
+
+	if err == sql.ErrNoRows {
+		return data.User{}, ErrUserNotFound
+	}
+
+	return u, err
+}

@@ -33,11 +33,11 @@ func lesson5() {
 	router := chi.NewRouter()
 
 	// Standard useful middlewares
-	router.Use(chiMiddleware.RequestID)                // generates request IDs
-	router.Use(chiMiddleware.RealIP)                   // uses X-Forwarded-For, etc.
-	router.Use(chiMiddleware.Timeout(5 * time.Second)) // request timeout
-	router.Use(middleware.Logging)                     // our custom logger
-	router.Use(chiMiddleware.Recoverer)                // recover panics
+	router.Use(chiMiddleware.RequestID)                 // generates request IDs
+	router.Use(chiMiddleware.RealIP)                    // uses X-Forwarded-For, etc.
+	router.Use(chiMiddleware.Timeout(15 * time.Second)) // request timeout
+	router.Use(middleware.Logging)                      // our custom logger
+	router.Use(chiMiddleware.Recoverer)                 // recover panics
 
 	dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
 	db, err := sql.Open("pgx", dsn)
@@ -45,11 +45,14 @@ func lesson5() {
 		log.Fatal(err)
 	}
 	userRepo := repo.NewUserPostgresRepo(db)
-	authService := service.NewAuthService(userRepo, "very-secret-key")
+	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
+	authService := service.NewAuthService(userRepo, refreshTokenRepo, "very-secret-key")
 	authHandler := handler.NewAuthHandler(authService)
 
 	router.Post("/signup", authHandler.Signup)
 	router.Post("/login", authHandler.Login)
+	router.Post("/refresh", authHandler.Refresh)
+	router.Post("/logout", authHandler.Logout)
 
 	authMiddleware := middleware.AuthMiddleware("very-secret-key")
 

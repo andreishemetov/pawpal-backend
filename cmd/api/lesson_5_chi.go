@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/service"
+	"github.com/andreishemetov/pawpal/internal/worker"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -44,6 +46,12 @@ func lesson5() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	reminderRepo := repo.NewReminderPostgresRepo(db)
+	reminderHandler := handler.NewReminderHandler(reminderRepo)
+
+	reminderWorker := worker.NewReminderWorker(reminderRepo)
+	go reminderWorker.Start(context.Background())
+
 	userRepo := repo.NewUserPostgresRepo(db)
 	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, "very-secret-key")
@@ -70,6 +78,7 @@ func lesson5() {
 			r.Get("/pets/count", petHandler.GetCountPets)
 			r.Delete("/pets/{id}", petHandler.DeletePetByID)
 			r.Put("/pets/{id}", petHandler.UpdatePet)
+			r.Post("/reminders", reminderHandler.CreateReminder)
 		},
 	)
 
@@ -127,6 +136,15 @@ curl -X POST http://localhost:8080/signup \
 UPDATE users
 SET role = 'admin'
 WHERE email = 'admin@example.com';
-"
+
+
+curl -X POST http://localhost:8080/reminders \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pet_id": 1,
+    "message": "Give medicine",
+    "remind_at": "2026-04-02T12:00:00Z"
+  }'
 
 */

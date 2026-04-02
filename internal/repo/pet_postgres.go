@@ -77,7 +77,7 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context, userID int, userRole strin
 	offsetArg := argN + 1
 
 	dataSQL := fmt.Sprintf(`
-		SELECT id, name, type, age, visits
+		SELECT id, name, type, age, visits, created_at, user_id
 		FROM pets
 		WHERE %s
 		ORDER BY %s
@@ -93,7 +93,7 @@ func (r *PetPostgresRepo) GetAll(ctx context.Context, userID int, userRole strin
 	var pets []data.Pet
 	for rows.Next() {
 		var p data.Pet
-		if err := rows.Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Type, &p.Age, &p.Visits, &p.CreatedAt, &p.UserID); err != nil {
 			return nil, 0, err
 		}
 		pets = append(pets, p)

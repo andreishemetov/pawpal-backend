@@ -22,11 +22,11 @@ func (r *UserPostgresRepo) Create(ctx context.Context, email, passwordHash strin
 	var u data.User
 
 	err := r.db.QueryRowContext(ctx, `
-		INSERT INTO users (email, password_hash)
-		VALUES ($1, $2)
-		RETURNING id, email, password_hash
-	`, email, passwordHash).
-		Scan(&u.ID, &u.Email, &u.PasswordHash)
+		INSERT INTO users (email, password_hash, role)
+		VALUES ($1, $2, $3)
+		RETURNING id, email, password_hash, role
+	`, email, passwordHash, "user").
+		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Role)
 
 	return u, err
 }
@@ -35,13 +35,13 @@ func (r *UserPostgresRepo) GetByEmail(ctx context.Context, email string) (data.U
 	var u data.User
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, email, password_hash
+		SELECT id, email, password_hash, role
 		FROM users
 		WHERE email = $1
 	`, email).
-		Scan(&u.ID, &u.Email, &u.PasswordHash)
+		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Role)
 
-	if err == sql.ErrNoRows {
+	if err == sql.ErrNoRows {	
 		return data.User{}, ErrUserNotFound
 	}
 
@@ -52,10 +52,10 @@ func (r *UserPostgresRepo) GetByID(ctx context.Context, id int) (data.User, erro
 	var u data.User
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, email, password_hash
+		SELECT id, email, password_hash, role
 		FROM users
 		WHERE id = $1
-	`, id).Scan(&u.ID, &u.Email, &u.PasswordHash)
+	`, id).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Role)
 
 	if err == sql.ErrNoRows {
 		return data.User{}, ErrUserNotFound

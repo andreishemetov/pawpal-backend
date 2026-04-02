@@ -73,6 +73,14 @@ func lesson5() {
 		},
 	)
 
+	router.Group(
+		func(r chi.Router) {
+			r.Use(authMiddleware)
+			r.Use(middleware.RequireRole("admin"))
+			r.Get("/admin/ping", getAdminPing)
+		},
+	)
+
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),
 	))
@@ -84,6 +92,11 @@ func lesson5() {
 func getHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+func getAdminPing(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("admin ok"))
 }
 
 /*
@@ -109,5 +122,11 @@ curl -X POST http://localhost:8080/signup \
   curl -X POST http://localhost:8080/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"123456"}'
+
+  docker compose exec db psql -U pawpal -d pawpal_dev -c "
+UPDATE users
+SET role = 'admin'
+WHERE email = 'admin@example.com';
+"
 
 */

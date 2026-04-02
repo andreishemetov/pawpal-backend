@@ -42,6 +42,12 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+
+	userRole, ok := getUserRole(w, r)
+	if !ok {
+		return
+	}
+
 	page := parseIntQuery(r, "page", 1)
 	limit := parseIntQuery(r, "limit", 20)
 
@@ -51,7 +57,7 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")          // optional search
 	sort := r.URL.Query().Get("sort")
 
-	pets, total, err := h.service.GetAll(r.Context(), userID, data.PetQuery{
+	pets, total, err := h.service.GetAll(r.Context(), userID, userRole, data.PetQuery{
 		Page:  page,
 		Limit: limit,
 		Type:  petType,
@@ -140,7 +146,12 @@ func (h *PetHandler) GetCountPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, total, err := h.service.GetAll(r.Context(), userID, data.PetQuery{})
+	userRole, ok := getUserRole(w, r)
+	if !ok {
+		return
+	}
+
+	_, total, err := h.service.GetAll(r.Context(), userID, userRole, data.PetQuery{})
 	if err != nil {
 		http.Error(w, "failed to load pets", http.StatusInternalServerError)
 		return
@@ -171,6 +182,11 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userRole, ok := getUserRole(w, r)
+	if !ok {
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -178,7 +194,7 @@ func (h *PetHandler) GetPetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pet, err := h.service.GetByID(r.Context(), userID, id)
+	pet, err := h.service.GetByID(r.Context(), userID, userRole, id)
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
 			http.Error(w, "pet not found", http.StatusNotFound)
@@ -207,6 +223,11 @@ func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userRole, ok := getUserRole(w, r)
+	if !ok {
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -214,7 +235,7 @@ func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isDeleted, err := h.service.DeleteByID(r.Context(), userID, id)
+	isDeleted, err := h.service.DeleteByID(r.Context(), userID, userRole, id)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -243,6 +264,11 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userRole, ok := getUserRole(w, r)
+	if !ok {
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
@@ -264,7 +290,7 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pet, err = h.service.Update(r.Context(), userID, id, pet)
+	pet, err = h.service.Update(r.Context(), userID, userRole, id, pet)
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -291,6 +317,16 @@ func getUserId(w http.ResponseWriter, r *http.Request) (int, bool) {
 	}
 	fmt.Println("current user id:", id)
 	return id, true
+}
+
+func getUserRole(w http.ResponseWriter, r *http.Request) (string, bool) {
+	role, ok := middleware.GetUserRole(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return "", false
+	}
+	fmt.Println("current user role:", role)
+	return role, true
 }
 
 func parseIntQuery(r *http.Request, key string, def int) int {

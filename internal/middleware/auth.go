@@ -11,10 +11,30 @@ import (
 type contextKey string
 
 const userIDKey contextKey = "userID"
+const userRoleKey contextKey = "userRole"
 
 func GetUserID(ctx context.Context) (int, bool) {
 	id, ok := ctx.Value(userIDKey).(int)
 	return id, ok
+}
+func GetUserRole(ctx context.Context) (string, bool) {
+	role, ok := ctx.Value(userRoleKey).(string)
+	return role, ok
+}
+
+// RequireRole allows the request only if the authenticated user has the given role.
+// Use after AuthMiddleware so GetUserRole sees JWT claims in context.
+func RequireRole(required string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role, ok := GetUserRole(r.Context())
+			if !ok || role != required {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func AuthMiddleware(secret string) func(http.Handler) http.Handler {
@@ -57,6 +77,12 @@ func AuthMiddleware(secret string) func(http.Handler) http.Handler {
 				return
 			}
 
+			role, ok := claims["role"].(string)
+			if !ok {
+				http.Error(w, "invalid role", http.StatusUnauthorized)
+				return
+			}
+
 			var userID int
 			switch v := sub.(type) {
 			case float64:
@@ -67,6 +93,7 @@ func AuthMiddleware(secret string) func(http.Handler) http.Handler {
 			}
 
 			ctx := context.WithValue(r.Context(), userIDKey, userID)
+			ctx = context.WithValue(ctx, userRoleKey, role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

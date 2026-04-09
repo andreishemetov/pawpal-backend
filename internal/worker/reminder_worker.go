@@ -66,8 +66,7 @@ func (w *ReminderWorker) process(ctx context.Context) {
 			Channel: r.Channel,
 		}
 
-		if err := w.notifier.Send(ctx, msg); 
-		err != nil {
+		if err := w.notifier.Send(ctx, msg); err != nil {
 			log.Println("notify error:", err)
 			_ = w.repoReminders.MarkFailed(ctx, r.ID, err.Error())
 			continue

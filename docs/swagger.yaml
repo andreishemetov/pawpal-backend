@@ -1,3 +1,4 @@
+basePath: /
 definitions:
   data.CountResponse:
     properties:
@@ -94,8 +95,19 @@ definitions:
       refresh_token:
         type: string
     type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: support@example.com
+    name: API Support
+    url: https://example.com/support
+  description: API for managing pets in PawPal.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://example.com/terms/
+  title: PawPal API
+  version: "1.0"
 paths:
   /login:
     post:
@@ -414,4 +426,7 @@ paths:
       summary: Sign up a new user
       tags:
       - auth
+schemes:
+- http
+- https
 swagger: "2.0"

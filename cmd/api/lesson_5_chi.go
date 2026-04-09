@@ -1,3 +1,19 @@
+// @title PawPal API
+// @version 1.0
+// @description API for managing pets in PawPal.
+// @termsOfService https://example.com/terms/
+
+// @contact.name API Support
+// @contact.url https://example.com/support
+// @contact.email support@example.com
+
+// @license.name Apache 2.0
+// @license.url https://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8080
+// @BasePath /
+// @schemes http https
+
 package main
 
 import (
@@ -112,6 +128,9 @@ func getAdminPing(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
+
+swag init -g cmd/api/lesson_5_chi.go -o docs
+
 curl -X POST http://localhost:8080/pets \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \

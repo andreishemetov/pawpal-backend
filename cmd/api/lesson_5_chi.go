@@ -68,9 +68,13 @@ func lesson5() {
 	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
 
 	reminderHandler := handler.NewReminderHandler(reminderRepo)
-	logNotifier := notify.NewLogNotifier()
 
-	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, logNotifier)
+	dispatcher := notify.NewDispatcher(map[string]notify.Notifier{
+		"log":   notify.NewLogNotifier(),
+		"email": notify.NewEmailNotifier("noreply@pawpal.local"),
+	})
+
+	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, dispatcher)
 	go reminderWorker.Start(context.Background())
 
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, "very-secret-key")

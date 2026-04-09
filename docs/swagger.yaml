@@ -1,4 +1,3 @@
-basePath: /
 definitions:
   data.CountResponse:
     properties:
@@ -17,6 +16,8 @@ definitions:
         type: string
       type:
         type: string
+      user_id:
+        type: integer
       visits:
         type: integer
     type: object
@@ -36,25 +37,122 @@ definitions:
             type: integer
         type: object
     type: object
+  data.Reminder:
+    properties:
+      channel:
+        type: string
+      error_message:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      pet_id:
+        type: integer
+      processed:
+        type: boolean
+      remind_at:
+        type: string
+      sent_at:
+        description: |-
+          SentAt is a nullable DB field: nil maps to NULL (not sent yet).
+          omitempty keeps sent_at out of JSON when it is nil.
+        type: string
+      user_id:
+        type: integer
+    type: object
+  data.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
   errs.ErrorResponse:
     properties:
       error:
         type: string
     type: object
-host: localhost:8080
+  handler.authRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handler.refreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  service.AuthTokens:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: https://example.com/support
-  description: API for managing pets in PawPal.
-  license:
-    name: Apache 2.0
-    url: https://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: https://example.com/terms/
-  title: PawPal API
-  version: "1.0"
+  contact: {}
 paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user credentials and return access/refresh tokens
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.authRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.AuthTokens'
+        "400":
+          description: invalid json
+          schema:
+            type: string
+        "401":
+          description: invalid credentials
+          schema:
+            type: string
+      summary: Log in a user
+      tags:
+      - auth
+  /logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke the provided refresh token
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.refreshRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: invalid json
+          schema:
+            type: string
+        "500":
+          description: failed to logout
+          schema:
+            type: string
+      summary: Log out a user
+      tags:
+      - auth
   /pets:
     get:
       description: Get pets with pagination and filtering
@@ -222,7 +320,98 @@ paths:
       summary: Get count of pets
       tags:
       - pets
-schemes:
-- http
-- https
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchange a valid refresh token for a new token pair
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.refreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.AuthTokens'
+        "400":
+          description: invalid json
+          schema:
+            type: string
+        "401":
+          description: invalid refresh token
+          schema:
+            type: string
+      summary: Refresh access token
+      tags:
+      - auth
+  /reminders:
+    post:
+      consumes:
+      - application/json
+      description: Create a new reminder for the current authenticated user
+      parameters:
+      - description: Reminder payload
+        in: body
+        name: reminder
+        required: true
+        schema:
+          $ref: '#/definitions/data.Reminder'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Reminder'
+        "400":
+          description: remind_at is required (use RFC3339, e.g. 2026-03-30T15:00:00Z)
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: failed to create reminder
+          schema:
+            type: string
+      summary: Create a reminder
+      tags:
+      - reminders
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Register a user by email and password
+      parameters:
+      - description: Signup payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.authRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.User'
+        "400":
+          description: email and password required
+          schema:
+            type: string
+        "500":
+          description: failed to signup
+          schema:
+            type: string
+      summary: Sign up a new user
+      tags:
+      - auth
 swagger: "2.0"

@@ -12,6 +12,7 @@ import (
 
 	"github.com/andreishemetov/pawpal/internal/handler"
 	"github.com/andreishemetov/pawpal/internal/middleware"
+	"github.com/andreishemetov/pawpal/internal/notify"
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/andreishemetov/pawpal/internal/worker"
@@ -47,13 +48,15 @@ func lesson5() {
 		log.Fatal(err)
 	}
 	reminderRepo := repo.NewReminderPostgresRepo(db)
-	reminderHandler := handler.NewReminderHandler(reminderRepo)
-
-	reminderWorker := worker.NewReminderWorker(reminderRepo)
-	go reminderWorker.Start(context.Background())
-
 	userRepo := repo.NewUserPostgresRepo(db)
 	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
+
+	reminderHandler := handler.NewReminderHandler(reminderRepo)
+	logNotifier := notify.NewLogNotifier()
+
+	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, logNotifier)
+	go reminderWorker.Start(context.Background())
+
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, "very-secret-key")
 	authHandler := handler.NewAuthHandler(authService)
 

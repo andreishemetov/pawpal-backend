@@ -1,0 +1,4 @@
+ALTER TABLE reminders
+ADD COLUMN channel TEXT NOT NULL DEFAULT 'log',
+ADD COLUMN sent_at TIMESTAMPTZ,
+ADD COLUMN error_message TEXT;

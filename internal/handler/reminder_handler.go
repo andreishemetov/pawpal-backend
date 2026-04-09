@@ -19,6 +19,21 @@ func NewReminderHandler(r *repo.ReminderPostgresRepo) *ReminderHandler {
 	return &ReminderHandler{repo: r}
 }
 
+// CreateReminder godoc
+// @Summary Create a reminder
+// @Description Create a new reminder for the current authenticated user
+// @Tags reminders
+// @Accept json
+// @Produce json
+// @Param reminder body data.Reminder true "Reminder payload"
+// @Success 201 {object} data.Reminder
+// @Failure 400 {string} string "invalid json"
+// @Failure 400 {string} string "pet_id is required and must be positive"
+// @Failure 400 {string} string "message is required"
+// @Failure 400 {string} string "remind_at is required (use RFC3339, e.g. 2026-03-30T15:00:00Z)"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 500 {string} string "failed to create reminder"
+// @Router /reminders [post]
 func (h *ReminderHandler) CreateReminder(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

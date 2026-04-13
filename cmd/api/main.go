@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -28,10 +27,8 @@ import (
 
 	"github.com/andreishemetov/pawpal/internal/handler"
 	"github.com/andreishemetov/pawpal/internal/middleware"
-	"github.com/andreishemetov/pawpal/internal/notify"
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/service"
-	"github.com/andreishemetov/pawpal/internal/worker"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -68,14 +65,6 @@ func main() {
 	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
 
 	reminderHandler := handler.NewReminderHandler(reminderRepo)
-
-	dispatcher := notify.NewDispatcher(map[string]notify.Notifier{
-		"log":   notify.NewLogNotifier(),
-		"email": notify.NewEmailNotifier("noreply@pawpal.local"),
-	})
-
-	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, dispatcher)
-	go reminderWorker.Start(context.Background())
 
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, "very-secret-key")
 	authHandler := handler.NewAuthHandler(authService)

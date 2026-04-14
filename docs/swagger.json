@@ -543,6 +543,20 @@
                 }
             }
         },
+        "data.PetsListMeta": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "data.PetsListResponse": {
             "type": "object",
             "properties": {
@@ -553,18 +567,7 @@
                     }
                 },
                 "meta": {
-                    "type": "object",
-                    "properties": {
-                        "limit": {
-                            "type": "integer"
-                        },
-                        "page": {
-                            "type": "integer"
-                        },
-                        "total": {
-                            "type": "integer"
-                        }
-                    }
+                    "$ref": "#/definitions/data.PetsListMeta"
                 }
             }
         },

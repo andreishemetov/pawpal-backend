@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/andreishemetov/pawpal/internal/cache"
 	"github.com/andreishemetov/pawpal/internal/data"
 	"github.com/andreishemetov/pawpal/internal/errs"
 	"github.com/andreishemetov/pawpal/internal/middleware"
@@ -17,10 +19,11 @@ import (
 
 type PetHandler struct {
 	service service.PetStore
+	cache   *cache.RedisCache
 }
 
-func NewPetHandler(service service.PetStore) *PetHandler {
-	return &PetHandler{service: service}
+func NewPetHandler(service service.PetStore, cache *cache.RedisCache) *PetHandler {
+	return &PetHandler{service: service, cache: cache}
 }
 
 // GetPets godoc
@@ -57,6 +60,22 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")          // optional search
 	sort := r.URL.Query().Get("sort")
 
+	cacheKey := fmt.Sprintf(
+		"pets:user=%d:role=%s:page=%d:limit=%d:type=%s:q=%s:sort=%s",
+		userID, userRole, page, limit, petType, q, sort,
+	)
+
+	var cached data.PetsListResponse
+	found, err := h.cache.GetJSON(r.Context(), cacheKey, &cached)
+	if err == nil && found {
+		log.Println("CACHE HIT", cacheKey)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(cached)
+		return
+	}
+
+	log.Println("CACHE MISS", cacheKey)
+	log.Println("QUERY POSTGRES", cacheKey)
 	pets, total, err := h.service.GetAll(r.Context(), userID, userRole, data.PetQuery{
 		Page:  page,
 		Limit: limit,
@@ -72,10 +91,14 @@ func (h *PetHandler) GetPets(w http.ResponseWriter, r *http.Request) {
 
 	resp := data.PetsListResponse{
 		Items: pets,
+		Meta: data.PetsListMeta{
+			Page:  page,
+			Limit: limit,
+			Total: total,
+		},
 	}
-	resp.Meta.Page = page
-	resp.Meta.Limit = limit
-	resp.Meta.Total = total
+
+	_ = h.cache.SetJSON(r.Context(), cacheKey, resp)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
@@ -128,6 +151,9 @@ func (h *PetHandler) PostPet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to create pet", http.StatusInternalServerError)
 		return
 	}
+
+	_ = h.cache.DeleteByPattern(r.Context(), fmt.Sprintf("pets:user=%d:*", userID))
+	_ = h.cache.DeleteByPattern(r.Context(), "pets:user=*:role=admin:*")
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(created)
@@ -245,6 +271,9 @@ func (h *PetHandler) DeletePetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = h.cache.DeleteByPattern(r.Context(), fmt.Sprintf("pets:user=%d:*", userID))
+	_ = h.cache.DeleteByPattern(r.Context(), "pets:user=*:role=admin:*")
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -305,6 +334,9 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	_ = h.cache.DeleteByPattern(r.Context(), fmt.Sprintf("pets:user=%d:*", userID))
+	_ = h.cache.DeleteByPattern(r.Context(), "pets:user=*:role=admin:*")
 
 	json.NewEncoder(w).Encode(pet)
 }

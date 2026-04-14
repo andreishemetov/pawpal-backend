@@ -22,6 +22,15 @@ definitions:
       visits:
         type: integer
     type: object
+  data.PetsListMeta:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
   data.PetsListResponse:
     properties:
       items:
@@ -29,14 +38,7 @@ definitions:
           $ref: '#/definitions/data.Pet'
         type: array
       meta:
-        properties:
-          limit:
-            type: integer
-          page:
-            type: integer
-          total:
-            type: integer
-        type: object
+        $ref: '#/definitions/data.PetsListMeta'
     type: object
   data.Reminder:
     properties:

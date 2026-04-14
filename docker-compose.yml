@@ -1,6 +1,11 @@
 version: "3.9"
 
 services:
+  redis:
+    image: redis:7
+    container_name: pawpal-redis
+    ports:
+      - "6379:6379"
   db:
     image: postgres:15
     container_name: pawpal-db
@@ -44,6 +49,7 @@ services:
       DATABASE_URL: postgres://pawpal:pawpal_pass@db:5432/pawpal_dev?sslmode=disable
       JWT_SECRET: very-secret-key
       HTTP_ADDR: :8080
+      REDIS_ADDR: redis:6379
     ports:
       - "8080:8080"
 

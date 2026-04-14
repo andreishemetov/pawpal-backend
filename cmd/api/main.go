@@ -27,6 +27,7 @@ import (
 	_ "github.com/andreishemetov/pawpal/docs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/andreishemetov/pawpal/internal/cache"
 	"github.com/andreishemetov/pawpal/internal/handler"
 	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/repo"
@@ -72,6 +73,12 @@ func main() {
 		log.Fatal("JWT_SECRET is required")
 	}
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		log.Fatal("REDIS_ADDR is required")
+	}
+	petCache := cache.NewRedisCache(redisAddr, 30*time.Second)
+
 	reminderRepo := repo.NewReminderPostgresRepo(db)
 	userRepo := repo.NewUserPostgresRepo(db)
 	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
@@ -89,7 +96,7 @@ func main() {
 	authMiddleware := middleware.AuthMiddleware(jwtSecret)
 
 	petRepo := repo.NewPetPostgresRepo(db)
-	petHandler := handler.NewPetHandler(petRepo)
+	petHandler := handler.NewPetHandler(petRepo, petCache)
 
 	router.Get("/health", getHealth)
 

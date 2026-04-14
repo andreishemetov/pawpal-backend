@@ -546,6 +546,20 @@ const docTemplate = `{
                 }
             }
         },
+        "data.PetsListMeta": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "data.PetsListResponse": {
             "type": "object",
             "properties": {
@@ -556,18 +570,7 @@ const docTemplate = `{
                     }
                 },
                 "meta": {
-                    "type": "object",
-                    "properties": {
-                        "limit": {
-                            "type": "integer"
-                        },
-                        "page": {
-                            "type": "integer"
-                        },
-                        "total": {
-                            "type": "integer"
-                        }
-                    }
+                    "$ref": "#/definitions/data.PetsListMeta"
                 }
             }
         },

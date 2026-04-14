@@ -1,0 +1,23 @@
+Useful Docker commands
+
+Build and run:
+
+docker compose up --build
+
+Stop:
+
+docker compose down
+
+Stop and remove DB volume:
+
+docker compose down -v
+
+See running containers:
+
+docker compose ps
+
+View logs:
+
+docker compose logs -f api
+docker compose logs -f worker
+docker compose logs -f db

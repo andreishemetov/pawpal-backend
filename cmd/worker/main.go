@@ -25,6 +25,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if dsn == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
+
 	// Initialize repositories
 	reminderRepo := repo.NewReminderPostgresRepo(db)
 	userRepo := repo.NewUserPostgresRepo(db)

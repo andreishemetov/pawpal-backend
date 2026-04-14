@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
+	_ "github.com/andreishemetov/pawpal/docs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/andreishemetov/pawpal/internal/handler"
@@ -55,18 +57,28 @@ func main() {
 	router.Use(middleware.Logging)                      // our custom logger
 	router.Use(chiMiddleware.Recoverer)                 // recover panics
 
-	dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
+	// dsn := "postgres://pawpal:pawpal_pass@localhost:5432/pawpal_dev?sslmode=disable"
+	dsn := os.Getenv("DATABASE_URL")
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
+	if dsn == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET is required")
+	}
+
 	reminderRepo := repo.NewReminderPostgresRepo(db)
 	userRepo := repo.NewUserPostgresRepo(db)
 	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
 
 	reminderHandler := handler.NewReminderHandler(reminderRepo)
 
-	authService := service.NewAuthService(userRepo, refreshTokenRepo, "very-secret-key")
+	authService := service.NewAuthService(userRepo, refreshTokenRepo, jwtSecret)
 	authHandler := handler.NewAuthHandler(authService)
 
 	router.Post("/signup", authHandler.Signup)
@@ -74,7 +86,7 @@ func main() {
 	router.Post("/refresh", authHandler.Refresh)
 	router.Post("/logout", authHandler.Logout)
 
-	authMiddleware := middleware.AuthMiddleware("very-secret-key")
+	authMiddleware := middleware.AuthMiddleware(jwtSecret)
 
 	petRepo := repo.NewPetPostgresRepo(db)
 	petHandler := handler.NewPetHandler(petRepo)
@@ -106,8 +118,13 @@ func main() {
 		httpSwagger.URL("/swagger/doc.json"),
 	))
 
-	log.Println("Server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	addr := os.Getenv("HTTP_ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+
+	log.Println("Server running on", addr)
+	log.Fatal(http.ListenAndServe(addr, router))
 }
 
 func getHealth(w http.ResponseWriter, r *http.Request) {
@@ -161,5 +178,16 @@ curl -X POST http://localhost:8080/reminders \
     "message": "Give medicine",
     "remind_at": "2026-04-02T12:00:00Z"
   }'
+
+
+
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0001_init.up.sql
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0002_add_indexes.up.sql
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0003_users.up.sql
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0004_add_user_id_to_pets.up.sql
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0005_refresh_tokens.up.sql
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0006_add_user_role.up.sql
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0007_reminders.up.sql
+docker compose exec -T db psql -U pawpal -d pawpal_dev < migrations/0008_reminder_delivery_fields.up.sql
 
 */

@@ -2,7 +2,7 @@ Useful Docker commands
 
 Build and run:
 
-docker compose up --build
+docker compose up -d --build
 
 Stop:
 

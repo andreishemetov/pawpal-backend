@@ -7,10 +7,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/andreishemetov/pawpal/internal/cache"
 	"github.com/andreishemetov/pawpal/internal/data"
 	"github.com/andreishemetov/pawpal/internal/errs"
 	"github.com/andreishemetov/pawpal/internal/handler"
+	"github.com/andreishemetov/pawpal/internal/middleware"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -19,7 +23,7 @@ type fakeStore struct {
 	pets []data.Pet
 }
 
-func (f *fakeStore) GetAll(ctx context.Context, q data.PetQuery) ([]data.Pet, int, error) {
+func (f *fakeStore) GetAll(ctx context.Context, userID int, userRole string, q data.PetQuery) ([]data.Pet, int, error) {
 	pets := append([]data.Pet(nil), f.pets...)
 	return pets, len(pets), nil
 }
@@ -29,7 +33,7 @@ func (f *fakeStore) Add(ctx context.Context, p data.Pet) (data.Pet, error) {
 	return p, nil
 }
 
-func (f *fakeStore) GetByID(ctx context.Context, id int) (data.Pet, error) {
+func (f *fakeStore) GetByID(ctx context.Context, userID int, userRole string, id int) (data.Pet, error) {
 	for i := range f.pets {
 		if f.pets[i].ID == id {
 			return f.pets[i], nil
@@ -38,7 +42,7 @@ func (f *fakeStore) GetByID(ctx context.Context, id int) (data.Pet, error) {
 	return data.Pet{}, errs.ErrNotFound
 }
 
-func (f *fakeStore) DeleteByID(ctx context.Context, id int) (bool, error) {
+func (f *fakeStore) DeleteByID(ctx context.Context, userID int, userRole string, id int) (bool, error) {
 	for i := range f.pets {
 		if f.pets[i].ID == id {
 			f.pets = append(f.pets[:i], f.pets[i+1:]...)
@@ -48,7 +52,7 @@ func (f *fakeStore) DeleteByID(ctx context.Context, id int) (bool, error) {
 	return false, errs.ErrNotFound
 }
 
-func (f *fakeStore) Update(ctx context.Context, id int, p data.Pet) (data.Pet, error) {
+func (f *fakeStore) Update(ctx context.Context, userID int, userRole string, id int, p data.Pet) (data.Pet, error) {
 	for i := range f.pets {
 		if f.pets[i].ID == id {
 			f.pets[i] = p
@@ -61,14 +65,28 @@ func (f *fakeStore) Update(ctx context.Context, id int, p data.Pet) (data.Pet, e
 
 // helper to create router with injected fake
 func setupRouterWithFake(fake *fakeStore) *chi.Mux {
-	h := handler.NewPetHandler(fake)
+	h := handler.NewPetHandler(fake, cache.NewRedisCache("localhost:6379", time.Minute))
 
 	r := chi.NewRouter()
+	r.Use(middleware.AuthMiddleware("test-secret"))
 	r.Get("/pets", h.GetPets)
 	r.Post("/pets", h.PostPet)
 	r.Get("/pets/{id}", h.GetPetByID)
 	r.Delete("/pets/{id}", h.DeletePetByID)
 	return r
+}
+
+func makeTestToken(t *testing.T, userID int, role string) string {
+	t.Helper()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":  float64(userID),
+		"role": role,
+	})
+	signed, err := token.SignedString([]byte("test-secret"))
+	if err != nil {
+		t.Fatalf("sign test token: %v", err)
+	}
+	return signed
 }
 
 func TestCreatePet_WithFake(t *testing.T) {
@@ -80,6 +98,7 @@ func TestCreatePet_WithFake(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/pets", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeTestToken(t, 101, "user"))
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -105,6 +124,7 @@ func TestGetPetByID_WithFake(t *testing.T) {
 
 	// not found
 	req1 := httptest.NewRequest(http.MethodGet, "/pets/999", nil)
+	req1.Header.Set("Authorization", "Bearer "+makeTestToken(t, 101, "user"))
 	rec1 := httptest.NewRecorder()
 	r.ServeHTTP(rec1, req1)
 	if rec1.Code != http.StatusNotFound {
@@ -113,6 +133,7 @@ func TestGetPetByID_WithFake(t *testing.T) {
 
 	// found
 	req2 := httptest.NewRequest(http.MethodGet, "/pets/10", nil)
+	req2.Header.Set("Authorization", "Bearer "+makeTestToken(t, 101, "user"))
 	rec2 := httptest.NewRecorder()
 	r.ServeHTTP(rec2, req2)
 	if rec2.Code != http.StatusOK {

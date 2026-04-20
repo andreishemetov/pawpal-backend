@@ -9,19 +9,12 @@ import (
 	"testing"
 
 	"github.com/andreishemetov/pawpal/internal/data"
-	"github.com/andreishemetov/pawpal/internal/handler"
-	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
 )
 
-func setupRouter() (*chi.Mux, *service.PetService) {
-	svc := service.NewPetService()
-	h := handler.NewPetHandler(svc)
-
-	r := chi.NewRouter()
-	r.Get("/pets", h.GetPets)
-	r.Post("/pets", h.PostPet)
-	r.Get("/pets/{id}", h.GetPetByID)
+func setupRouter() (*chi.Mux, *fakeStore) {
+	svc := &fakeStore{pets: []data.Pet{}}
+	r := setupRouterWithFake(svc)
 	return r, svc
 }
 
@@ -33,6 +26,7 @@ func TestCreatePetHandler_Success(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/pets", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeTestToken(t, 101, "user"))
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -59,6 +53,7 @@ func TestCreatePetHandler_ValidateName(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/pets", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeTestToken(t, 101, "user"))
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -76,6 +71,7 @@ func TestGetPetByID_NotFoundAndFound(t *testing.T) {
 
 	// not found
 	req1 := httptest.NewRequest(http.MethodGet, "/pets/999", nil)
+	req1.Header.Set("Authorization", "Bearer "+makeTestToken(t, 101, "user"))
 	rec1 := httptest.NewRecorder()
 	r.ServeHTTP(rec1, req1)
 	if rec1.Code != http.StatusNotFound {
@@ -84,6 +80,7 @@ func TestGetPetByID_NotFoundAndFound(t *testing.T) {
 
 	// found
 	req2 := httptest.NewRequest(http.MethodGet, "/pets/10", nil)
+	req2.Header.Set("Authorization", "Bearer "+makeTestToken(t, 101, "user"))
 	rec2 := httptest.NewRecorder()
 	r.ServeHTTP(rec2, req2)
 	if rec2.Code != http.StatusOK {

@@ -58,3 +58,17 @@ func (c *RedisCache) DeleteByPattern(ctx context.Context, pattern string) error 
 	}
 	return iter.Err()
 }
+
+func (c *RedisCache) Increment(ctx context.Context, key string, ttl time.Duration) (int64, error) {
+	val, err := c.client.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	if val == 1 {
+		// первый запрос → ставим TTL
+		c.client.Expire(ctx, key, ttl)
+	}
+
+	return val, nil
+}

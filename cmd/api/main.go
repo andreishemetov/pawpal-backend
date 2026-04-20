@@ -98,11 +98,14 @@ func main() {
 	petRepo := repo.NewPetPostgresRepo(db)
 	petHandler := handler.NewPetHandler(petRepo, petCache)
 
+	rateLimitMiddleware := middleware.RateLimitMiddleware(petCache, 10, 1*time.Minute)
+
 	router.Get("/health", getHealth)
 
 	router.Group(
 		func(r chi.Router) {
 			r.Use(authMiddleware)
+			r.Use(rateLimitMiddleware)
 			r.Get("/pets", petHandler.GetPets)
 			r.Post("/pets", petHandler.PostPet)
 			r.Get("/pets/{id}", petHandler.GetPetByID)

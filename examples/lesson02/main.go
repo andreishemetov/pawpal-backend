@@ -29,7 +29,7 @@ func (p PetWithVisits) String() string {
 	return fmt.Sprintf("%s (%d years) - Visits: %d", p.Name, p.Age, p.Visits)
 }
 
-func lesson2() {
+func main() {
 	fmt.Println("Lesson 2 starting...")
 
 	pet := PetWithVisits{

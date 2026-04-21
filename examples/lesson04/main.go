@@ -9,8 +9,7 @@ import (
 	"github.com/andreishemetov/pawpal/internal/data"
 )
 
-func lesson4() {
-
+func main() {
 	fmt.Println("Lesson 4 starting...")
 
 	fmt.Println("Server running on :8080")

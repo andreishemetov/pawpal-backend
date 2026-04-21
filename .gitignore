@@ -1,5 +1,9 @@
 # Binaries
 server
+api
+worker
+/bin/
+/dist/
 *.exe
 *.exe~
 *.dll

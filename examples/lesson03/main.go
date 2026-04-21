@@ -7,8 +7,7 @@ import (
 	"github.com/andreishemetov/pawpal/internal/data"
 )
 
-func lesson3() {
-
+func main() {
 	fmt.Println("Lesson 3 starting...")
 
 	pet := data.Pet{

@@ -6,8 +6,7 @@ import (
 	"github.com/andreishemetov/pawpal/internal/data"
 )
 
-func lesson1() {
-
+func main() {
 	fmt.Println("Lesson 1 starting...")
 
 	pet := data.Pet{
@@ -19,7 +18,7 @@ func lesson1() {
 	fmt.Println("PawPal backend starting...", pet)
 	fmt.Println(pet.Speak())
 	fmt.Println(pet.SpeakInLanguage("es"))
-	fmt.Println(SpeakInLanguage2(pet, "en"))
+	fmt.Println(speakInLanguage2(pet, "en"))
 
 	pets := []data.Pet{
 		{ID: 1, Name: "Charlie", Type: "Dog"},
@@ -38,7 +37,7 @@ func lesson1() {
 	fmt.Println("Total pets:", countPets(pets))
 }
 
-func SpeakInLanguage2(p data.Pet, language string) string {
+func speakInLanguage2(p data.Pet, language string) string {
 	if language == "en" {
 		return "My name is " + p.Name
 	}

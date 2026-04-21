@@ -13,6 +13,7 @@ type ReminderWorker struct {
 	repoReminders *repo.ReminderPostgresRepo
 	userRepo      *repo.UserPostgresRepo
 	notifier      notify.Notifier
+	pollInterval  time.Duration
 }
 
 /*
@@ -22,12 +23,15 @@ type ReminderWorker struct {
 интерфейс уже сам по себе “ссылка-обертка” (внутри: тип + значение);
 */
 
-func NewReminderWorker(repoReminders *repo.ReminderPostgresRepo, userRepo *repo.UserPostgresRepo, notifier notify.Notifier) *ReminderWorker {
-	return &ReminderWorker{repoReminders: repoReminders, userRepo: userRepo, notifier: notifier}
+func NewReminderWorker(repoReminders *repo.ReminderPostgresRepo, userRepo *repo.UserPostgresRepo, notifier notify.Notifier, pollInterval time.Duration) *ReminderWorker {
+	if pollInterval < time.Second {
+		pollInterval = 5 * time.Second
+	}
+	return &ReminderWorker{repoReminders: repoReminders, userRepo: userRepo, notifier: notifier, pollInterval: pollInterval}
 }
 
 func (w *ReminderWorker) Start(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(w.pollInterval)
 	defer ticker.Stop()
 
 	for {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	_ "github.com/andreishemetov/pawpal/docs"
 	"github.com/andreishemetov/pawpal/internal/cache"
@@ -27,7 +26,7 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	petCache := cache.NewRedisCache(cfg.RedisAddr, 30*time.Second)
+	petCache := cache.NewRedisCache(cfg.RedisAddr, cfg.PetCacheTTL)
 
 	reminderRepo := repo.NewReminderPostgresRepo(db)
 	userRepo := repo.NewUserPostgresRepo(db)
@@ -42,7 +41,7 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 
 	router.Use(chiMiddleware.RequestID)
 	router.Use(chiMiddleware.RealIP)
-	router.Use(chiMiddleware.Timeout(15 * time.Second))
+	router.Use(chiMiddleware.Timeout(cfg.HTTPTimeout))
 	router.Use(middleware.Logging)
 	router.Use(chiMiddleware.Recoverer)
 
@@ -56,7 +55,7 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 	petRepo := repo.NewPetPostgresRepo(db)
 	petHandler := handler.NewPetHandler(petRepo, petCache)
 
-	rateLimitMiddleware := middleware.RateLimitMiddleware(petCache, 10, 1*time.Minute)
+	rateLimitMiddleware := middleware.RateLimitMiddleware(petCache, cfg.RateLimitMax, cfg.RateLimitWindow)
 
 	router.Get("/health", healthHandler)
 

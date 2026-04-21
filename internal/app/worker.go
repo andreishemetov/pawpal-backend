@@ -24,10 +24,10 @@ func RunReminderWorker(ctx context.Context, cfg *config.Config) error {
 
 	dispatcher := notify.NewDispatcher(map[string]notify.Notifier{
 		"log":   notify.NewLogNotifier(),
-		"email": notify.NewEmailNotifier("noreply@pawpal.local"),
+		"email": notify.NewEmailNotifier(cfg.NotifyEmailFrom),
 	})
 
-	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, dispatcher)
+	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, dispatcher, cfg.WorkerPollInterval)
 
 	log.Println("reminder worker started")
 	reminderWorker.Start(ctx)

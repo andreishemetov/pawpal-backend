@@ -61,6 +61,7 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 
 	rateLimitMiddleware := middleware.RateLimitMiddleware(petCache, cfg.RateLimitMax, cfg.RateLimitWindow)
 
+	router.Get("/", rootIndexHandler())
 	router.Get("/health", healthHandler)
 
 	router.Group(

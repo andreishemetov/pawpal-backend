@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PawPal API</title>
+  <style>
+    :root {
+      --bg0: #0f1419;
+      --bg1: #1a2332;
+      --text: #e8eef4;
+      --muted: #8b9cb3;
+      --accent: #f4a261;
+      --accent2: #2a9d8f;
+      --card: rgba(26, 35, 50, 0.85);
+      --border: rgba(244, 162, 97, 0.22);
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(244, 162, 97, 0.12), transparent 50%),
+        radial-gradient(900px 500px at 100% 20%, rgba(42, 157, 143, 0.1), transparent 45%),
+        linear-gradient(165deg, var(--bg0), var(--bg1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem;
+    }
+
+    .wrap {
+      width: min(520px, 100%);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.25rem 2rem;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .badge::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 12px var(--accent2);
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      margin: 0 0 1.75rem;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    a.btn:hover {
+      transform: translateY(-1px);
+    }
+
+    a.primary {
+      background: linear-gradient(135deg, var(--accent), #e76f51);
+      color: #1a120b;
+      box-shadow: 0 8px 24px rgba(244, 162, 97, 0.35);
+    }
+
+    a.secondary {
+      background: rgba(232, 238, 244, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(232, 238, 244, 0.15);
+    }
+
+    footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      opacity: 0.85;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="badge">Backend</div>
+      <h1>PawPal API</h1>
+      <p>
+        REST API для учёта питомцев, напоминаний и аутентификации.
+        Документация OpenAPI доступна в Swagger UI.
+      </p>
+      <p>
+        @andrei.shemetau
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="/swagger/index.html">Swagger UI</a>
+        <a class="btn secondary" href="/health">Health</a>
+      </div>
+    </div>
+    <footer>PawPal · Go + PostgreSQL + Redis</footer>
+  </div>
+</body>
+
+</html>

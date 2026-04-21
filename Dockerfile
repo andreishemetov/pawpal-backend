@@ -20,5 +20,6 @@ COPY --from=builder /out/api /app/api
 COPY --from=builder /out/worker /app/worker
 COPY --from=builder /out/migrate /app/migrate
 COPY --from=builder /app/migrations /app/migrations
+COPY --from=builder /app/index.html /app/index.html
 
 EXPOSE 8080

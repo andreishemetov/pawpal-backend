@@ -19,6 +19,8 @@ package main
 import (
 	"context"
 	"log"
+	"os/signal"
+	"syscall"
 
 	"github.com/andreishemetov/pawpal/internal/app"
 	"github.com/andreishemetov/pawpal/internal/config"
@@ -36,7 +38,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := app.RunAPI(context.Background(), cfg); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	if err := app.RunAPI(ctx, cfg); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/andreishemetov/pawpal/docs"
 	"github.com/andreishemetov/pawpal/internal/cache"
@@ -18,7 +20,9 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// RunAPI wires dependencies and serves HTTP until the process exits.
+const httpShutdownTimeout = 30 * time.Second
+
+// RunAPI wires dependencies and serves HTTP until ctx is cancelled or the server stops.
 func RunAPI(ctx context.Context, cfg *config.Config) error {
 	db, err := OpenPostgres(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -85,11 +89,40 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 		httpSwagger.URL("/swagger/doc.json"),
 	))
 
-	log.Println("Server listening on", cfg.HTTPAddr)
-	if err := http.ListenAndServe(cfg.HTTPAddr, router); err != nil {
-		return err
+	srv := &http.Server{
+		Addr:    cfg.HTTPAddr,
+		Handler: router,
 	}
-	return nil
+
+	errCh := make(chan error, 1)
+	go func() {
+		log.Println("Server listening on", cfg.HTTPAddr)
+		err := srv.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			errCh <- nil
+			return
+		}
+		errCh <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), httpShutdownTimeout)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("http shutdown: %w", err)
+		}
+		if err := <-errCh; err != nil {
+			return err
+		}
+		log.Println("HTTP server stopped")
+		return nil
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("http listen: %w", err)
+		}
+		return nil
+	}
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {

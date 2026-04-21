@@ -54,6 +54,9 @@ func (w *ReminderWorker) process(ctx context.Context) {
 	}
 
 	for _, r := range reminders {
+		if err := ctx.Err(); err != nil {
+			return
+		}
 		user, err := w.userRepo.GetByID(ctx, r.UserID)
 		if err != nil {
 			log.Println("worker user lookup error:", err)

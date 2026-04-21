@@ -16,6 +16,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Root context: OS signals cancel ctx → ReminderWorker.Start exits its select on ctx.Done().
+	// DATABASE_URL is validated in config.LoadForWorker and again in app.OpenPostgres before Ping.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 

@@ -11,7 +11,7 @@ import (
 	"github.com/andreishemetov/pawpal/internal/worker"
 )
 
-// RunReminderWorker runs the reminder delivery loop until ctx is cancelled.
+// RunReminderWorker runs the reminder delivery loop until ctx is cancelled (e.g. SIGTERM on Render).
 func RunReminderWorker(ctx context.Context, cfg *config.Config) error {
 	db, err := OpenPostgres(ctx, cfg.DatabaseURL)
 	if err != nil {

@@ -2,6 +2,7 @@
 server
 api
 worker
+migrate
 /bin/
 /dist/
 *.exe

@@ -3,6 +3,7 @@ services:
     name: pawpal-api
     runtime: docker
     dockerfilePath: ./Dockerfile
+    preDeployCommand: /app/migrate
     dockerCommand: /app/api
     plan: starter
     healthCheckPath: /health

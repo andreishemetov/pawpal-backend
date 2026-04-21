@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: pawpal-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: /app/api
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pawpal-db
+          property: connectionString
+      - key: REDIS_ADDR
+        fromService:
+          type: keyvalue
+          name: pawpal-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # Render injects PORT; HTTP_ADDR overrides if set (optional).
+
+  - type: worker
+    name: pawpal-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: /app/worker
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pawpal-db
+          property: connectionString
+      # Optional worker tuning, e.g. REMINDER_WORKER_POLL_INTERVAL, NOTIFY_EMAIL_FROM
+
+  - type: keyvalue
+    name: pawpal-redis
+    plan: free
+
+databases:
+  - name: pawpal-db
+    plan: free

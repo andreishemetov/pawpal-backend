@@ -1,8 +1,8 @@
-# Binaries
-server
-api
-worker
-migrate
+# Binaries (root only — do not ignore cmd/<name>/ source trees)
+/server
+/api
+/worker
+/migrate
 /bin/
 /dist/
 *.exe

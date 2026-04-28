@@ -50,9 +50,6 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 
 	router := chi.NewRouter()
 
-	metrics.Register()
-	router.Handle("/metrics", promhttp.Handler())
-
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.MetricsMiddleware)
 	router.Use(chiMiddleware.RequestID)
@@ -60,6 +57,9 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 	router.Use(chiMiddleware.Timeout(cfg.HTTPTimeout))
 	router.Use(middleware.Logging)
 	router.Use(chiMiddleware.Recoverer)
+
+	metrics.Register()
+	router.Handle("/metrics", promhttp.Handler())
 
 	router.Post("/signup", authHandler.Signup)
 	router.Post("/login", authHandler.Login)

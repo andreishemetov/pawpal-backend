@@ -1,5 +1,10 @@
 Useful Docker commands
 
+rebuild & run docker api:
+
+docker compose build api    
+docker compose up -d api  
+
 Build and run:
 
 docker compose up -d --build

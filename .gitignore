@@ -18,6 +18,7 @@ go.work
 
 # IDE / OS
 .idea/
+.cursor/debug*.log
 *.swp
 *.swo
 .DS_Store

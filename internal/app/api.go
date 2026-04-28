@@ -12,11 +12,14 @@ import (
 	"github.com/andreishemetov/pawpal/internal/cache"
 	"github.com/andreishemetov/pawpal/internal/config"
 	"github.com/andreishemetov/pawpal/internal/handler"
+	"github.com/andreishemetov/pawpal/internal/logx"
+	"github.com/andreishemetov/pawpal/internal/metrics"
 	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -24,6 +27,10 @@ const httpShutdownTimeout = 30 * time.Second
 
 // RunAPI wires dependencies and serves HTTP until ctx is cancelled or the server stops.
 func RunAPI(ctx context.Context, cfg *config.Config) error {
+
+	logger := logx.New()
+	logger.Info().Msg("starting api")
+
 	db, err := OpenPostgres(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("postgres: %w", err)
@@ -43,6 +50,11 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 
 	router := chi.NewRouter()
 
+	metrics.Register()
+	router.Handle("/metrics", promhttp.Handler())
+
+	router.Use(middleware.RequestLogger(logger))
+	router.Use(middleware.MetricsMiddleware)
 	router.Use(chiMiddleware.RequestID)
 	router.Use(chiMiddleware.RealIP)
 	router.Use(chiMiddleware.Timeout(cfg.HTTPTimeout))

@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+
 	cfg, err := config.LoadForWorker()
 	if err != nil {
 		log.Fatal(err)

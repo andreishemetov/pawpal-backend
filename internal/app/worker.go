@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/andreishemetov/pawpal/internal/config"
+	"github.com/andreishemetov/pawpal/internal/logx"
 	"github.com/andreishemetov/pawpal/internal/notify"
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/worker"
@@ -13,6 +14,10 @@ import (
 
 // RunReminderWorker runs the reminder delivery loop until ctx is cancelled (e.g. SIGTERM on Render).
 func RunReminderWorker(ctx context.Context, cfg *config.Config) error {
+
+	logger := logx.New()
+	logger.Info().Msg("starting worker")
+
 	db, err := OpenPostgres(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("postgres: %w", err)
@@ -21,6 +26,8 @@ func RunReminderWorker(ctx context.Context, cfg *config.Config) error {
 
 	reminderRepo := repo.NewReminderPostgresRepo(db)
 	userRepo := repo.NewUserPostgresRepo(db)
+
+	
 
 	dispatcher := notify.NewDispatcher(map[string]notify.Notifier{
 		"log":   notify.NewLogNotifier(),

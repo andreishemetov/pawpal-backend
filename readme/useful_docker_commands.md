@@ -26,3 +26,8 @@ View logs:
 docker compose logs -f api
 docker compose logs -f worker
 docker compose logs -f db
+
+
+MY API:
+https://dashboard.render.com/
+https://pawpal-backend-a4i8.onrender.com/

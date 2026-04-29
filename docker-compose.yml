@@ -18,7 +18,7 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pawpal -d pawpal_dev"]
+      test: [ "CMD-SHELL", "pg_isready -U pawpal -d pawpal_dev" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -34,14 +34,15 @@ services:
     command:
       [
         "-path=/migrations",
-        "-database=postgres://pawpal:pawpal_pass@db:5432/pawpal_dev?sslmode=disable",
+        "-database=postgres://pawpal:pawpal_pass@db:5432/pawpal_dev?sslmode=d\
+          isable",
         "up",
       ]
 
   api:
     build: .
     container_name: pawpal-api
-    command: ["/app/api"]
+    command: [ "/app/api" ]
     depends_on:
       - db
       - migrate
@@ -56,7 +57,7 @@ services:
   worker:
     build: .
     container_name: pawpal-worker
-    command: ["/app/worker"]
+    command: [ "/app/worker" ]
     depends_on:
       - db
       - migrate
@@ -64,5 +65,26 @@ services:
       DATABASE_URL: postgres://pawpal:pawpal_pass@db:5432/pawpal_dev?sslmode=disable
       JWT_SECRET: very-secret-key
 
+  prometheus:
+    image: prom/prometheus
+    container_name: pawpal-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana
+    container_name: pawpal-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+
 volumes:
   db-data:
+  grafana-data:

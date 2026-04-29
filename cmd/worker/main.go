@@ -2,19 +2,20 @@ package main
 
 import (
 	"context"
-	"log"
 	"os/signal"
 	"syscall"
 
 	"github.com/andreishemetov/pawpal/internal/app"
 	"github.com/andreishemetov/pawpal/internal/config"
+	"github.com/andreishemetov/pawpal/internal/logx"
 )
 
 func main() {
+	logger := logx.New()
 
 	cfg, err := config.LoadForWorker()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Msg("failed to load config")
 	}
 
 	// Root context: OS signals cancel ctx → ReminderWorker.Start exits its select on ctx.Done().
@@ -23,6 +24,6 @@ func main() {
 	defer stop()
 
 	if err := app.RunReminderWorker(ctx, cfg); err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Msg("worker exited with error")
 	}
 }

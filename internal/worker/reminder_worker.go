@@ -2,11 +2,11 @@ package worker
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/andreishemetov/pawpal/internal/notify"
 	"github.com/andreishemetov/pawpal/internal/repo"
+	"github.com/rs/zerolog"
 )
 
 type ReminderWorker struct {
@@ -14,6 +14,7 @@ type ReminderWorker struct {
 	userRepo      *repo.UserPostgresRepo
 	notifier      notify.Notifier
 	pollInterval  time.Duration
+	logger        zerolog.Logger
 }
 
 /*
@@ -23,11 +24,11 @@ type ReminderWorker struct {
 интерфейс уже сам по себе “ссылка-обертка” (внутри: тип + значение);
 */
 
-func NewReminderWorker(repoReminders *repo.ReminderPostgresRepo, userRepo *repo.UserPostgresRepo, notifier notify.Notifier, pollInterval time.Duration) *ReminderWorker {
+func NewReminderWorker(repoReminders *repo.ReminderPostgresRepo, userRepo *repo.UserPostgresRepo, notifier notify.Notifier, pollInterval time.Duration, logger zerolog.Logger) *ReminderWorker {
 	if pollInterval < time.Second {
 		pollInterval = 5 * time.Second
 	}
-	return &ReminderWorker{repoReminders: repoReminders, userRepo: userRepo, notifier: notifier, pollInterval: pollInterval}
+	return &ReminderWorker{repoReminders: repoReminders, userRepo: userRepo, notifier: notifier, pollInterval: pollInterval, logger: logger}
 }
 
 func (w *ReminderWorker) Start(ctx context.Context) {
@@ -37,7 +38,7 @@ func (w *ReminderWorker) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("worker stopped")
+			w.logger.Info().Msg("worker stopped")
 			return
 
 		case <-ticker.C:
@@ -49,7 +50,7 @@ func (w *ReminderWorker) Start(ctx context.Context) {
 func (w *ReminderWorker) process(ctx context.Context) {
 	reminders, err := w.repoReminders.GetDue(ctx)
 	if err != nil {
-		log.Println("worker error:", err)
+		w.logger.Error().Err(err).Msg("failed to fetch due reminders")
 		return
 	}
 
@@ -57,9 +58,19 @@ func (w *ReminderWorker) process(ctx context.Context) {
 		if err := ctx.Err(); err != nil {
 			return
 		}
+		w.logger.Info().
+			Int("user_id", r.UserID).
+			Int("pet_id", r.PetID).
+			Str("channel", r.Channel).
+			Msg("processing reminder")
+
 		user, err := w.userRepo.GetByID(ctx, r.UserID)
 		if err != nil {
-			log.Println("worker user lookup error:", err)
+			w.logger.Error().
+				Err(err).
+				Int("reminder_id", r.ID).
+				Int("user_id", r.UserID).
+				Msg("failed to load user for reminder")
 			_ = w.repoReminders.MarkFailed(ctx, r.ID, err.Error())
 			continue
 		}
@@ -74,13 +85,19 @@ func (w *ReminderWorker) process(ctx context.Context) {
 		}
 
 		if err := w.notifier.Send(ctx, msg); err != nil {
-			log.Println("notify error:", err)
+			w.logger.Error().
+				Err(err).
+				Int("reminder_id", r.ID).
+				Msg("failed to send reminder")
 			_ = w.repoReminders.MarkFailed(ctx, r.ID, err.Error())
 			continue
 		}
 
 		if err := w.repoReminders.MarkSent(ctx, r.ID); err != nil {
-			log.Println("mark sent error:", err)
+			w.logger.Error().
+				Err(err).
+				Int("reminder_id", r.ID).
+				Msg("failed to mark reminder as sent")
 		}
 	}
 }

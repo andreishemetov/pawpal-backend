@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/andreishemetov/pawpal/internal/config"
 	"github.com/andreishemetov/pawpal/internal/logx"
@@ -27,17 +26,15 @@ func RunReminderWorker(ctx context.Context, cfg *config.Config) error {
 	reminderRepo := repo.NewReminderPostgresRepo(db)
 	userRepo := repo.NewUserPostgresRepo(db)
 
-	
-
 	dispatcher := notify.NewDispatcher(map[string]notify.Notifier{
 		"log":   notify.NewLogNotifier(),
 		"email": notify.NewEmailNotifier(cfg.NotifyEmailFrom),
 	})
 
-	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, dispatcher, cfg.WorkerPollInterval)
+	reminderWorker := worker.NewReminderWorker(reminderRepo, userRepo, dispatcher, cfg.WorkerPollInterval, logger)
 
-	log.Println("reminder worker started")
+	logger.Info().Msg("reminder worker started")
 	reminderWorker.Start(ctx)
-	log.Println("reminder worker stopped")
+	logger.Info().Msg("reminder worker stopped")
 	return nil
 }

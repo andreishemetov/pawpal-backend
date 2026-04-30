@@ -75,7 +75,8 @@ func (r *ReminderPostgresRepo) MarkSent(ctx context.Context, id int) error {
 func (r *ReminderPostgresRepo) MarkFailed(ctx context.Context, id int, msg string) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE reminders
-		SET error_message = $2
+		SET processed = true,
+		    error_message = $2
 		WHERE id = $1
 	`, id, msg)
 	return err

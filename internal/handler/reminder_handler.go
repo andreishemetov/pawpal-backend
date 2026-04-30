@@ -7,16 +7,18 @@ import (
 	"strings"
 
 	"github.com/andreishemetov/pawpal/internal/data"
+	"github.com/andreishemetov/pawpal/internal/events"
 	"github.com/andreishemetov/pawpal/internal/middleware"
 	"github.com/andreishemetov/pawpal/internal/repo"
 )
 
 type ReminderHandler struct {
 	repo *repo.ReminderPostgresRepo
+	producer *events.Producer
 }
 
-func NewReminderHandler(r *repo.ReminderPostgresRepo) *ReminderHandler {
-	return &ReminderHandler{repo: r}
+func NewReminderHandler(r *repo.ReminderPostgresRepo, p *events.Producer) *ReminderHandler {
+	return &ReminderHandler{repo: r, producer: p}
 }
 
 // CreateReminder godoc
@@ -67,6 +69,11 @@ func (h *ReminderHandler) CreateReminder(w http.ResponseWriter, r *http.Request)
 		log.Printf("reminder Create: %v", err)
 		status, msg := reminderCreateHTTPError(err)
 		http.Error(w, msg, status)
+		return
+	}
+
+	if err := h.producer.PublishReminder(r.Context(), created.ID, created.UserID, created.PetID, created.Channel); err != nil {
+		http.Error(w, "failed to publish reminder event", http.StatusInternalServerError)
 		return
 	}
 

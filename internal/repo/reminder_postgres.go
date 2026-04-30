@@ -81,3 +81,25 @@ func (r *ReminderPostgresRepo) MarkFailed(ctx context.Context, id int, msg strin
 	`, id, msg)
 	return err
 }
+
+func (r *ReminderPostgresRepo) GetByID(ctx context.Context, id int) (data.Reminder, error) {
+	var rem data.Reminder
+
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, user_id, pet_id, message, remind_at, processed, channel, sent_at, error_message
+		FROM reminders
+		WHERE id = $1
+	`, id).Scan(
+		&rem.ID,
+		&rem.UserID,
+		&rem.PetID,
+		&rem.Message,
+		&rem.RemindAt,
+		&rem.Processed,
+		&rem.Channel,
+		&rem.SentAt,
+		&rem.ErrorMessage,
+	)
+
+	return rem, err
+}

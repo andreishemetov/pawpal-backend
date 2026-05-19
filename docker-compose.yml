@@ -45,6 +45,7 @@ services:
     command: [ "/app/api" ]
     depends_on:
       - db
+      - redis
       - migrate
     environment:
       DATABASE_URL: postgres://pawpal:pawpal_pass@db:5432/pawpal_dev?sslmode=disable
@@ -60,10 +61,12 @@ services:
     command: [ "/app/worker" ]
     depends_on:
       - db
+      - redis
       - migrate
     environment:
       DATABASE_URL: postgres://pawpal:pawpal_pass@db:5432/pawpal_dev?sslmode=disable
       JWT_SECRET: very-secret-key
+      REDIS_ADDR: redis:6379
 
   prometheus:
     image: prom/prometheus

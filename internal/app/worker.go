@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/andreishemetov/pawpal/internal/config"
 	"github.com/andreishemetov/pawpal/internal/logx"
@@ -13,7 +11,6 @@ import (
 	"github.com/andreishemetov/pawpal/internal/redisx"
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/worker"
-	// "github.com/andreishemetov/pawpal/internal/worker"
 )
 
 // RunReminderWorker runs the reminder delivery loop until ctx is cancelled (e.g. SIGTERM on Render).
@@ -28,12 +25,7 @@ func RunReminderWorker(ctx context.Context, cfg *config.Config) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		log.Fatal("REDIS_ADDR is required")
-	}
-
-	redisClient := redisx.NewClient(redisAddr)
+	redisClient := redisx.NewClient(cfg.RedisAddr)
 
 	reminderRepo := repo.NewReminderPostgresRepo(db)
 	userRepo := repo.NewUserPostgresRepo(db)
@@ -57,11 +49,11 @@ func RunReminderWorker(ctx context.Context, cfg *config.Config) error {
 		"worker-1",
 	)
 
-	if err := streamWorker.Start(context.Background()); err != nil && !errors.Is(err, context.Canceled) {
-		log.Fatal(err)
-	}
-
 	logger.Info().Msg("stream worker started")
-
+	err = streamWorker.Start(ctx)
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return fmt.Errorf("stream worker: %w", err)
+	}
+	logger.Info().Msg("stream worker stopped")
 	return nil
 }

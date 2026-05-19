@@ -130,6 +130,9 @@ func (c *Config) validateWorker() error {
 	if c.DatabaseURL == "" {
 		return fmt.Errorf("DATABASE_URL is required")
 	}
+	if c.RedisAddr == "" {
+		return fmt.Errorf("REDIS_ADDR is required")
+	}
 	return nil
 }
 

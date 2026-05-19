@@ -11,10 +11,12 @@ import (
 	_ "github.com/andreishemetov/pawpal/docs"
 	"github.com/andreishemetov/pawpal/internal/cache"
 	"github.com/andreishemetov/pawpal/internal/config"
+	"github.com/andreishemetov/pawpal/internal/events"
 	"github.com/andreishemetov/pawpal/internal/handler"
 	"github.com/andreishemetov/pawpal/internal/logx"
 	"github.com/andreishemetov/pawpal/internal/metrics"
 	"github.com/andreishemetov/pawpal/internal/middleware"
+	"github.com/andreishemetov/pawpal/internal/redisx"
 	"github.com/andreishemetov/pawpal/internal/repo"
 	"github.com/andreishemetov/pawpal/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -43,7 +45,9 @@ func RunAPI(ctx context.Context, cfg *config.Config) error {
 	userRepo := repo.NewUserPostgresRepo(db)
 	refreshTokenRepo := repo.NewRefreshTokenPostgresRepo(db)
 
-	reminderHandler := handler.NewReminderHandler(reminderRepo)
+	redisClient := redisx.NewClient(cfg.RedisAddr)
+	producer := events.NewProducer(redisClient)
+	reminderHandler := handler.NewReminderHandler(reminderRepo, producer)
 
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, cfg.JWTSecret)
 	authHandler := handler.NewAuthHandler(authService)
